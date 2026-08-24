@@ -6,6 +6,10 @@ import { FeedProvider } from '@/context/FeedContext';
 export const metadata: Metadata = {
   title: 'ShortClip - Next-Gen Short Video Platform',
   description: 'Ultra-fast, responsive short clip streaming web application built with Next.js and TypeScript.',
+  icons: {
+    icon: '/icon.svg',
+    apple: '/icon.svg',
+  },
 };
 
 export default function RootLayout({
