@@ -117,7 +117,7 @@ export const FeedContainer: React.FC = () => {
   }
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div className="feed-stage-wrapper">
       {/* 50% Centered Snap Feed Viewport */}
       <div className="feed-viewport" ref={containerRef}>
         {videos.map((video, idx) => (
@@ -138,23 +138,7 @@ export const FeedContainer: React.FC = () => {
       {activeVideoIndex > 0 && (
         <button
           onClick={scrollToPrev}
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: '-60px',
-            transform: 'translateY(-60px)',
-            background: 'rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            color: '#fff',
-            width: '44px',
-            height: '44px',
-            borderRadius: '50%',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+          className="desktop-nav-arrow prev-arrow"
           title="Previous Clip (Up)"
         >
           <ChevronUp size={24} />
@@ -164,23 +148,7 @@ export const FeedContainer: React.FC = () => {
       {activeVideoIndex < videos.length - 1 && (
         <button
           onClick={scrollToNext}
-          style={{
-            position: 'absolute',
-            top: '50%',
-            right: '-60px',
-            transform: 'translateY(10px)',
-            background: 'rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            color: '#fff',
-            width: '44px',
-            height: '44px',
-            borderRadius: '50%',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+          className="desktop-nav-arrow next-arrow"
           title="Next Clip (Down)"
         >
           <ChevronDown size={24} />

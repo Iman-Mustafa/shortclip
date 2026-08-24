@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Clapperboard, Flame, LogIn, LogOut, User as UserIcon, Server } from 'lucide-react';
+import { Clapperboard, Flame, LogIn, LogOut, User as UserIcon } from 'lucide-react';
 import { FeedContainer } from '@/components/FeedContainer';
 import { AuthModal } from '@/components/AuthModal';
 import { CommentsDrawer } from '@/components/CommentsDrawer';
@@ -14,16 +14,14 @@ export default function HomePage() {
   const { user, isAuthenticated, logout, openAuthModal } = useAuth();
   const { toastMessage } = useFeed();
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-
   return (
     <main className="app-container">
       {/* Ambient background glow for desktop aesthetic */}
       <div className="ambient-glow-left" />
       <div className="ambient-glow-right" />
 
-      {/* Desktop Brand Navigation Bar */}
-      <header className="desktop-side-nav">
+      {/* Top Application Header / Brand Navigation */}
+      <header className="app-header">
         <a href="#" className="brand-logo">
           <div className="brand-icon-wrapper">
             <Clapperboard size={24} color="#fff" />
@@ -70,13 +68,6 @@ export default function HomePage() {
           )}
         </div>
       </header>
-
-      {/* Backend Integration Status Indicator */}
-      <div className="backend-status-indicator" title={`Backend API Endpoint: ${apiUrl}`}>
-        <span className="status-dot" />
-        <Server size={14} />
-        <span>API: {apiUrl.replace(/https?:\/\//, '')}</span>
-      </div>
 
       {/* Centered 50% Short-Clip Video Feed */}
       <FeedContainer />
