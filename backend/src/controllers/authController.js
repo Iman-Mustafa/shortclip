@@ -25,6 +25,10 @@ const register = async (req, res) => {
       return res.status(400).json({ message: 'Username and password are required' });
     }
 
+    if (password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
     if (confirmPassword !== undefined && password !== confirmPassword) {
       return res.status(400).json({ message: 'Passwords do not match' });
     }
@@ -50,6 +54,10 @@ const register = async (req, res) => {
   } catch (error) {
     if (error.code === 11000) {
       return res.status(409).json({ message: 'Username already taken' });
+    }
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(val => val.message);
+      return res.status(400).json({ message: messages.join(', ') });
     }
     console.error('Register error:', error);
     res.status(500).json({ message: 'Server error during registration' });
