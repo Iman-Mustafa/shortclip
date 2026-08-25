@@ -11,7 +11,7 @@ interface SenderProfileProps {
 }
 
 export const SenderProfile: React.FC<SenderProfileProps> = ({ video }) => {
-  const { toggleFollow } = useFeed();
+  const { toggleFollow, openCreatorProfile } = useFeed();
   const { user, isAuthenticated } = useAuth();
   const { creator, description, tags, soundTitle } = video;
 
@@ -20,11 +20,20 @@ export const SenderProfile: React.FC<SenderProfileProps> = ({ video }) => {
     user &&
     (user.id === creator.id || user.username?.toLowerCase() === creator.username?.toLowerCase());
 
+  const handleOpenProfile = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    openCreatorProfile(creator.username || creator.id);
+  };
+
   return (
     <div className="sender-content-container">
       {/* Profile Header */}
       <div className="profile-header-row">
-        <div className="avatar-wrapper">
+        <div
+          className="avatar-wrapper clickable-avatar"
+          onClick={handleOpenProfile}
+          title={`View @${creator.username}'s profile`}
+        >
           <img
             src={creator.avatarUrl || 'https://api.dicebear.com/7.x/bottts/svg?seed=creator'}
             alt={creator.username}
@@ -32,7 +41,11 @@ export const SenderProfile: React.FC<SenderProfileProps> = ({ video }) => {
           />
         </div>
 
-        <div className="creator-info">
+        <div
+          className="creator-info clickable-creator-info"
+          onClick={handleOpenProfile}
+          title={`View @${creator.username}'s profile`}
+        >
           <div className="creator-username">
             @{creator.username}
             <BadgeCheck size={16} className="creator-verified" />

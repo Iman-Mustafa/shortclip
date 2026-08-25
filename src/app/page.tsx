@@ -9,6 +9,8 @@ import { CommentsDrawer } from '@/components/CommentsDrawer';
 import { ShareModal } from '@/components/ShareModal';
 import { ZoomModal } from '@/components/ZoomModal';
 import { EditVideoModal } from '@/components/EditVideoModal';
+import { CreatorProfileModal } from '@/components/CreatorProfileModal';
+import { VideoPreviewModal } from '@/components/VideoPreviewModal';
 import { useAuth } from '@/context/AuthContext';
 import { useFeed } from '@/context/FeedContext';
 
@@ -95,6 +97,8 @@ export default function HomePage() {
       <ShareModal />
       <ZoomModal />
       <EditVideoModal />
+      <CreatorProfileModal />
+      <VideoPreviewModal />
 
       {/* Global Toast Notification */}
       {toastMessage && (

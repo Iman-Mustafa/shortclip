@@ -84,6 +84,18 @@ export interface SaveResponse {
   saveCount: number;
 }
 
+export interface CreatorProfileResponse {
+  user: User & {
+    followingCount?: number;
+    clipCount?: number;
+  };
+  videos: Video[];
+}
+
+export interface FollowersResponse {
+  followers: User[];
+}
+
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;

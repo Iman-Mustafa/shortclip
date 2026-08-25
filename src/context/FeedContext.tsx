@@ -36,6 +36,13 @@ interface FeedContextType {
   activeEditVideo: Video | null;
   openEditModal: (video: Video) => void;
   closeEditModal: () => void;
+  activeCreatorProfile: string | null;
+  openCreatorProfile: (usernameOrId: string) => void;
+  closeCreatorProfile: () => void;
+  activePreviewVideo: Video | null;
+  openPreviewVideo: (video: Video) => void;
+  closePreviewVideo: () => void;
+  playVideoInFeed: (video: Video) => void;
   toastMessage: string | null;
   showToast: (msg: string) => void;
 }
@@ -54,6 +61,8 @@ export const FeedProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [activeCommentVideo, setActiveCommentVideo] = useState<Video | null>(null);
   const [activeShareVideo, setActiveShareVideo] = useState<Video | null>(null);
   const [activeEditVideo, setActiveEditVideo] = useState<Video | null>(null);
+  const [activeCreatorProfile, setActiveCreatorProfile] = useState<string | null>(null);
+  const [activePreviewVideo, setActivePreviewVideo] = useState<Video | null>(null);
   const [zoomedVideo, setZoomedVideo] = useState<Video | null>(null);
   const [isProfileStudioOpen, setIsProfileStudioOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -72,6 +81,38 @@ export const FeedProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const closeProfileStudio = useCallback(() => {
     setIsProfileStudioOpen(false);
   }, []);
+
+  const openCreatorProfile = useCallback((usernameOrId: string) => {
+    setActiveCreatorProfile(usernameOrId);
+  }, []);
+
+  const closeCreatorProfile = useCallback(() => {
+    setActiveCreatorProfile(null);
+  }, []);
+
+  const openPreviewVideo = useCallback((video: Video) => {
+    setActivePreviewVideo(video);
+  }, []);
+
+  const closePreviewVideo = useCallback(() => {
+    setActivePreviewVideo(null);
+  }, []);
+
+  const playVideoInFeed = useCallback(
+    (video: Video) => {
+      const idx = videos.findIndex((v) => v.id === video.id);
+      if (idx !== -1) {
+        setActiveVideoIndex(idx);
+      } else {
+        setVideos((prev) => [video, ...prev]);
+        setActiveVideoIndex(0);
+      }
+      setActivePreviewVideo(null);
+      setActiveCreatorProfile(null);
+      setIsProfileStudioOpen(false);
+    },
+    [videos]
+  );
 
   const publishVideo = useCallback(
     async (dto: CreateVideoDto): Promise<Video> => {
@@ -106,7 +147,7 @@ export const FeedProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [showToast]
   );
 
-  // Load Feed
+  // Load Feed (re-runs when auth state changes to enrich isFollowing, isLiked, isSaved)
   const loadFeed = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -156,9 +197,10 @@ export const FeedProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [isAuthenticated, user]);
 
+  // Re-sync feed on auth changes
   useEffect(() => {
     loadFeed();
-  }, [loadFeed]);
+  }, [isAuthenticated, loadFeed]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -393,6 +435,13 @@ export const FeedProvider: React.FC<{ children: React.ReactNode }> = ({ children
         activeEditVideo,
         openEditModal,
         closeEditModal,
+        activeCreatorProfile,
+        openCreatorProfile,
+        closeCreatorProfile,
+        activePreviewVideo,
+        openPreviewVideo,
+        closePreviewVideo,
+        playVideoInFeed,
         zoomedVideo,
         openZoom,
         closeZoom,

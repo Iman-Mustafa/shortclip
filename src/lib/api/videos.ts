@@ -1,11 +1,14 @@
 import { apiClient } from './client';
 import {
+  User,
   Video,
   Comment,
   LikeResponse,
   SaveResponse,
   PaginatedVideosResponse,
   FollowResponse,
+  FollowersResponse,
+  CreatorProfileResponse,
   CreateVideoDto,
   UpdateVideoDto,
 } from '@/types';
@@ -149,6 +152,32 @@ export const videosApi = {
    */
   async toggleFollow(userId: string): Promise<FollowResponse> {
     return await apiClient.post<FollowResponse>(`/users/${userId}/follow`);
+  },
+
+  /**
+   * Get list of followers for a user
+   */
+  async getFollowers(userId: string = 'me'): Promise<User[]> {
+    try {
+      const res = await apiClient.get<FollowersResponse | { followers: User[] }>(`/users/${userId}/followers`);
+      return res?.followers || [];
+    } catch (err) {
+      console.warn('Failed to fetch followers:', err);
+      return [];
+    }
+  },
+
+  /**
+   * Get creator public profile and their clips
+   */
+  async getCreatorProfile(idOrUsername: string): Promise<CreatorProfileResponse | null> {
+    try {
+      const res = await apiClient.get<CreatorProfileResponse>(`/users/${idOrUsername}/profile`);
+      return res || null;
+    } catch (err) {
+      console.warn(`Failed to fetch creator profile for ${idOrUsername}:`, err);
+      return null;
+    }
   },
 
   /**

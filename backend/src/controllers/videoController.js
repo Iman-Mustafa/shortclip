@@ -67,7 +67,7 @@ const getFeed = async (req, res) => {
           username: creator.username || '',
           avatarUrl: creator.avatarUrl || undefined,
           isFollowing: requestingUserId
-            ? creatorFollowers.some((fid) => fid.toString() === requestingUserId)
+            ? creatorFollowers.some((fid) => (fid._id ? fid._id.toString() : fid.toString()) === requestingUserId.toString())
             : false,
           followerCount: creatorFollowers.length,
         },

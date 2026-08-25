@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -10,6 +10,8 @@ import {
   Camera,
   Film,
   Bookmark,
+  Users,
+  Play,
   RotateCcw,
   CheckCircle,
   AlertCircle,
@@ -26,15 +28,19 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useFeed } from '@/context/FeedContext';
+import { videosApi } from '@/lib/api/videos';
+import { VideoPreviewModal } from '@/components/VideoPreviewModal';
+import { User } from '@/types';
 
-type StudioTab = 'upload' | 'record' | 'my-clips' | 'saved' | 'profile';
+type StudioTab = 'upload' | 'record' | 'my-clips' | 'saved' | 'followers' | 'profile';
 
 export default function StudioPage() {
   const router = useRouter();
   const { user, isAuthenticated, logout, updateProfile, openAuthModal } = useAuth();
-  const { publishVideo, videos, savedVideos, toggleSave, showToast } = useFeed();
+  const { publishVideo, videos, savedVideos, toggleSave, openPreviewVideo, toggleFollow, showToast } = useFeed();
 
   const [activeTab, setActiveTab] = useState<StudioTab>('upload');
+  const [followersList, setFollowersList] = useState<User[]>([]);
 
   // Form State
   const [description, setDescription] = useState('');
@@ -68,6 +74,22 @@ export default function StudioPage() {
       setEditAvatarUrl(user.avatarUrl || '');
     }
   }, [user]);
+
+  const fetchFollowers = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      const list = await videosApi.getFollowers('me');
+      setFollowersList(list);
+    } catch (e) {
+      console.warn('Failed to fetch followers', e);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchFollowers();
+    }
+  }, [isAuthenticated, fetchFollowers]);
 
   // Camera Recording State
   const [isRecording, setIsRecording] = useState(false);
@@ -405,6 +427,13 @@ export default function StudioPage() {
             <span>Saved ({savedVideos.length})</span>
           </button>
           <button
+            className={`header-studio-tab ${activeTab === 'followers' ? 'active' : ''}`}
+            onClick={() => handleTabChange('followers')}
+          >
+            <Users size={15} />
+            <span>Followers ({followersList.length || user?.followerCount || 0})</span>
+          </button>
+          <button
             className={`header-studio-tab ${activeTab === 'profile' ? 'active' : ''}`}
             onClick={() => handleTabChange('profile')}
           >
@@ -464,7 +493,7 @@ export default function StudioPage() {
                 </div>
                 <div className="studio-stats-pills">
                   <span
-                    className="stat-pill stat-clickable"
+                    className={`stat-pill stat-clickable ${activeTab === 'my-clips' ? 'active-pill' : ''}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleTabChange('my-clips');
@@ -474,7 +503,7 @@ export default function StudioPage() {
                     <strong>{userClips.length}</strong> Clips
                   </span>
                   <span
-                    className="stat-pill stat-clickable"
+                    className={`stat-pill stat-clickable ${activeTab === 'saved' ? 'active-pill' : ''}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleTabChange('saved');
@@ -483,8 +512,15 @@ export default function StudioPage() {
                   >
                     <strong>{savedVideos.length}</strong> Saved
                   </span>
-                  <span className="stat-pill">
-                    <strong>{user.followerCount || 0}</strong> Followers
+                  <span
+                    className={`stat-pill stat-clickable ${activeTab === 'followers' ? 'active-pill' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleTabChange('followers');
+                    }}
+                    title="View Followers"
+                  >
+                    <strong>{followersList.length || user.followerCount || 0}</strong> Followers
                   </span>
                 </div>
               </div>
@@ -764,8 +800,16 @@ export default function StudioPage() {
               ) : (
                 <div className="user-clips-grid">
                   {userClips.map((clip) => (
-                    <div key={clip.id} className="user-clip-card">
+                    <div
+                      key={clip.id}
+                      className="user-clip-card clickable-clip-card"
+                      onClick={() => openPreviewVideo(clip)}
+                      title="Click to watch video"
+                    >
                       <video src={clip.videoUrl} className="user-clip-thumb" />
+                      <div className="clip-play-overlay-icon">
+                        <Play size={24} fill="#fff" />
+                      </div>
                       <div className="user-clip-overlay">
                         <p className="user-clip-desc">{clip.description}</p>
                         <div className="user-clip-stats">
@@ -799,8 +843,16 @@ export default function StudioPage() {
               ) : (
                 <div className="user-clips-grid">
                   {savedVideos.map((clip) => (
-                    <div key={clip.id} className="user-clip-card saved-clip-card">
+                    <div
+                      key={clip.id}
+                      className="user-clip-card saved-clip-card clickable-clip-card"
+                      onClick={() => openPreviewVideo(clip)}
+                      title="Click to watch saved video"
+                    >
                       <video src={clip.videoUrl} className="user-clip-thumb" />
+                      <div className="clip-play-overlay-icon">
+                        <Play size={24} fill="#fff" />
+                      </div>
                       <div className="user-clip-overlay">
                         <div className="saved-creator-tag">@{clip.creator?.username}</div>
                         <p className="user-clip-desc">{clip.description}</p>
@@ -821,6 +873,61 @@ export default function StudioPage() {
                           </button>
                         </div>
                       </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tab Content 5: Followers List */}
+          {activeTab === 'followers' && (
+            <div className="studio-form-content clips-gallery-view">
+              {followersList.length === 0 ? (
+                <div className="empty-clips-view">
+                  <Users size={36} color="rgba(255,255,255,0.3)" />
+                  <h4>No Followers Yet</h4>
+                  <p>Share your clips to gain followers in the ShortClip community!</p>
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange('upload')}
+                    className="dropzone-btn"
+                    style={{ marginTop: '10px' }}
+                  >
+                    Post a Clip
+                  </button>
+                </div>
+              ) : (
+                <div className="followers-list-grid">
+                  {followersList.map((follower) => (
+                    <div key={follower.id} className="follower-user-card">
+                      <img
+                        src={follower.avatarUrl || 'https://api.dicebear.com/7.x/bottts/svg?seed=user'}
+                        alt={follower.username}
+                        className="follower-avatar"
+                      />
+                      <div className="follower-meta">
+                        <div className="follower-username-row">
+                          <h5>@{follower.username}</h5>
+                          <BadgeCheck size={14} className="verified-badge" />
+                        </div>
+                        {follower.name && <p className="follower-name">{follower.name}</p>}
+                        {follower.bio && <p className="follower-bio">{follower.bio}</p>}
+                      </div>
+                      <button
+                        type="button"
+                        className={`follow-btn follower-action-btn ${follower.isFollowing ? 'following' : ''}`}
+                        onClick={async () => {
+                          await toggleFollow(follower.id || follower.username);
+                          setFollowersList((prev) =>
+                            prev.map((f) =>
+                              f.id === follower.id ? { ...f, isFollowing: !f.isFollowing } : f
+                            )
+                          );
+                        }}
+                      >
+                        {follower.isFollowing ? 'Following' : 'Follow Back'}
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -1008,6 +1115,9 @@ export default function StudioPage() {
           )}
         </div>
       </main>
+
+      {/* Video Playback / Preview Modal */}
+      <VideoPreviewModal />
     </div>
   );
 }
