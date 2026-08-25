@@ -1,93 +1,62 @@
 import { apiClient } from './client';
-import { AuthLoginDto, AuthRegisterDto, AuthResponse, User } from '@/types';
+import { AuthLoginDto, AuthRegisterDto, AuthResponse, User, UpdateProfileDto } from '@/types';
 
 /**
- * Authentication API Service
+ * Authentication API Service (Dynamic Backend Integration)
  * -------------------------------------------------------------
- * BACKEND COLLAB NOTE FOR YOUR BACKEND TEAMMATE:
+ * BACKEND COLLABORATION CONTRACTS:
  *
  * 1. Register Endpoint:
  *    POST /auth/register
  *    Payload: { username, password, confirmPassword }
- *    Returns: { user: { id, username, avatarUrl }, token }
+ *    Returns: { user: User, token: string }
  *
  * 2. Login Endpoint:
  *    POST /auth/login
  *    Payload: { username, password }
- *    Returns: { user: { id, username, avatarUrl }, token }
+ *    Returns: { user: User, token: string }
  *
  * 3. Me Endpoint:
  *    GET /auth/me
  *    Header: Authorization: Bearer <token>
- *    Returns: { user: { id, username, avatarUrl } }
+ *    Returns: { user: User }
+ *
+ * 4. Logout Endpoint:
+ *    POST /auth/logout
+ *
+ * 5. Profile Update Endpoint:
+ *    PATCH /auth/profile
+ *    Header: Authorization: Bearer <token>
+ *    Payload: UpdateProfileDto
+ *    Returns: { user: User }
  * -------------------------------------------------------------
  */
 
-const USE_FALLBACK = process.env.NEXT_PUBLIC_USE_MOCK_FALLBACK !== 'false';
-
 export const authApi = {
   /**
-   * Register a new user with username, password, and confirm password
+   * Register a new user
    */
   async register(data: AuthRegisterDto): Promise<AuthResponse> {
     if (data.password !== data.confirmPassword) {
       throw new Error('Passwords do not match');
     }
 
-    try {
-      // Attempt backend call first
-      return await apiClient.post<AuthResponse>('/auth/register', data);
-    } catch (err) {
-      if (!USE_FALLBACK) throw err;
-
-      // Fallback local session simulator for offline/standalone testing
-      console.info('Backend unreachable, using local auth simulator');
-      const newUser: User = {
-        id: `usr_${Date.now()}`,
-        username: data.username,
-        name: data.username,
-        avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(data.username)}`,
-      };
-      const simulatedResponse: AuthResponse = {
-        user: newUser,
-        token: `mock_jwt_token_${Date.now()}`,
-      };
-
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('shortclip_auth', JSON.stringify(simulatedResponse));
-      }
-
-      return simulatedResponse;
+    const response = await apiClient.post<AuthResponse>('/auth/register', data);
+    if (typeof window !== 'undefined' && response?.token) {
+      localStorage.setItem('shortclip_auth', JSON.stringify(response));
     }
+    return response;
   },
 
   /**
-   * Login with username and password
+   * Login with credentials
    */
   async login(data: AuthLoginDto): Promise<AuthResponse> {
-    try {
-      return await apiClient.post<AuthResponse>('/auth/login', data);
-    } catch (err) {
-      if (!USE_FALLBACK) throw err;
-
-      console.info('Backend unreachable, using local login simulator');
-      const mockUser: User = {
-        id: `usr_${data.username}`,
-        username: data.username,
-        name: data.username,
-        avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(data.username)}`,
-      };
-      const simulatedResponse: AuthResponse = {
-        user: mockUser,
-        token: `mock_jwt_token_${Date.now()}`,
-      };
-
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('shortclip_auth', JSON.stringify(simulatedResponse));
-      }
-
-      return simulatedResponse;
+    const response = await apiClient.post<AuthResponse>('/auth/login', data);
+    if (typeof window !== 'undefined' && response?.token) {
+      localStorage.setItem('shortclip_auth', JSON.stringify(response));
     }
+    return response;
   },
 
   /**
@@ -95,9 +64,10 @@ export const authApi = {
    */
   async getMe(): Promise<User | null> {
     try {
-      const res = await apiClient.get<{ user: User }>('/auth/me');
-      return res.user;
-    } catch (err) {
+      const res = await apiClient.get<{ user: User } | User>('/auth/me');
+      return (res as any)?.user || res || null;
+    } catch {
+      // If token exists in local storage cache
       if (typeof window !== 'undefined') {
         const stored = localStorage.getItem('shortclip_auth');
         if (stored) {
@@ -108,6 +78,26 @@ export const authApi = {
       }
       return null;
     }
+  },
+
+  /**
+   * Update profile picture, phone, bio, or password
+   */
+  async updateProfile(data: UpdateProfileDto): Promise<User> {
+    const res = await apiClient.patch<{ user: User } | User>('/auth/profile', data);
+    const updatedUser = (res as any)?.user || res;
+
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('shortclip_auth');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          parsed.user = updatedUser;
+          localStorage.setItem('shortclip_auth', JSON.stringify(parsed));
+        } catch {}
+      }
+    }
+    return updatedUser;
   },
 
   /**
@@ -122,45 +112,6 @@ export const authApi = {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('shortclip_auth');
       }
-    }
-  },
-
-  /**
-   * Update profile picture, phone number, bio, or password
-   */
-  async updateProfile(data: import('@/types').UpdateProfileDto): Promise<User> {
-    try {
-      const res = await apiClient.patch<{ user: User }>('/auth/profile', data);
-      if (typeof window !== 'undefined') {
-        const stored = localStorage.getItem('shortclip_auth');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          parsed.user = res.user;
-          localStorage.setItem('shortclip_auth', JSON.stringify(parsed));
-        }
-      }
-      return res.user;
-    } catch (err) {
-      if (!USE_FALLBACK) throw err;
-
-      // Local runtime updater for standalone execution
-      if (typeof window !== 'undefined') {
-        const stored = localStorage.getItem('shortclip_auth');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          parsed.user = {
-            ...parsed.user,
-            ...(data.name ? { name: data.name } : {}),
-            ...(data.avatarUrl ? { avatarUrl: data.avatarUrl } : {}),
-            ...(data.bio !== undefined ? { bio: data.bio } : {}),
-            ...(data.phoneNumber !== undefined ? { phoneNumber: data.phoneNumber } : {}),
-          };
-          localStorage.setItem('shortclip_auth', JSON.stringify(parsed));
-          return parsed.user;
-        }
-      }
-
-      throw err;
     }
   },
 };

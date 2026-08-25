@@ -1,11 +1,17 @@
 import { apiClient } from './client';
-import { Video, Comment, LikeResponse, PaginatedVideosResponse, FollowResponse, CreateVideoDto } from '@/types';
-import { INITIAL_VIDEOS, MOCK_COMMENTS } from './mockData';
+import {
+  Video,
+  Comment,
+  LikeResponse,
+  PaginatedVideosResponse,
+  FollowResponse,
+  CreateVideoDto,
+} from '@/types';
 
 /**
- * Videos & Interaction API Service
+ * Videos & Interaction API Service (Dynamic Backend Integration)
  * -------------------------------------------------------------
- * BACKEND COLLAB NOTE FOR YOUR BACKEND TEAMMATE:
+ * BACKEND COLLABORATION CONTRACTS:
  *
  * 1. Feed Endpoint:
  *    GET /videos?cursor=<cursor>&limit=<limit>
@@ -26,31 +32,39 @@ import { INITIAL_VIDEOS, MOCK_COMMENTS } from './mockData';
  *    Payload: { text: string }
  *    Returns: { comment: Comment }
  *
- * 5. Follow User Endpoint:
+ * 5. Share Endpoint:
+ *    POST /videos/:id/share
+ *    Returns: { shareCount: number }
+ *
+ * 6. Follow User Endpoint:
  *    POST /users/:id/follow
  *    Header: Authorization: Bearer <token>
  *    Returns: { userId: string, isFollowing: boolean }
+ *
+ * 7. Publish Video Endpoint:
+ *    POST /videos
+ *    Header: Authorization: Bearer <token>
+ *    Payload: CreateVideoDto
+ *    Returns: { video: Video }
  * -------------------------------------------------------------
  */
 
-const USE_FALLBACK = process.env.NEXT_PUBLIC_USE_MOCK_FALLBACK !== 'false';
-
-// In-memory runtime state for standalone/mock mode
-let runtimeVideos = [...INITIAL_VIDEOS];
-let runtimeComments = { ...MOCK_COMMENTS };
-
 export const videosApi = {
   /**
-   * Fetch video feed
+   * Fetch dynamic video feed from backend
    */
   async getFeed(cursor?: string): Promise<PaginatedVideosResponse> {
     try {
-      return await apiClient.get<PaginatedVideosResponse>('/videos', { cursor, limit: 10 });
-    } catch (err) {
-      if (!USE_FALLBACK) throw err;
-      console.info('Backend /videos unreachable, serving runtime shortclips feed');
+      const res = await apiClient.get<PaginatedVideosResponse>('/videos', { cursor, limit: 10 });
       return {
-        videos: runtimeVideos,
+        videos: Array.isArray(res?.videos) ? res.videos : [],
+        nextCursor: res?.nextCursor || null,
+        hasMore: !!res?.hasMore,
+      };
+    } catch (err) {
+      console.warn('Backend /videos fetch error or offline:', err);
+      return {
+        videos: [],
         nextCursor: null,
         hasMore: false,
       };
@@ -61,24 +75,7 @@ export const videosApi = {
    * Toggle Like video (Requires Auth)
    */
   async toggleLike(videoId: string): Promise<LikeResponse> {
-    try {
-      return await apiClient.post<LikeResponse>(`/videos/${videoId}/like`);
-    } catch (err) {
-      if (!USE_FALLBACK) throw err;
-
-      // Update runtime state
-      const video = runtimeVideos.find((v) => v.id === videoId);
-      if (video) {
-        video.isLiked = !video.isLiked;
-        video.likeCount += video.isLiked ? 1 : -1;
-        return {
-          videoId,
-          isLiked: video.isLiked,
-          likeCount: video.likeCount,
-        };
-      }
-      return { videoId, isLiked: true, likeCount: 1 };
-    }
+    return await apiClient.post<LikeResponse>(`/videos/${videoId}/like`);
   },
 
   /**
@@ -86,11 +83,12 @@ export const videosApi = {
    */
   async getComments(videoId: string): Promise<Comment[]> {
     try {
-      const res = await apiClient.get<{ comments: Comment[] }>(`/videos/${videoId}/comments`);
-      return res.comments;
+      const res = await apiClient.get<{ comments: Comment[] } | Comment[]>(`/videos/${videoId}/comments`);
+      if (Array.isArray(res)) return res;
+      return res?.comments || [];
     } catch (err) {
-      if (!USE_FALLBACK) throw err;
-      return runtimeComments[videoId] || [];
+      console.warn(`Failed to fetch comments for video ${videoId}:`, err);
+      return [];
     }
   },
 
@@ -98,50 +96,8 @@ export const videosApi = {
    * Post a new comment (Requires Auth)
    */
   async postComment(videoId: string, text: string): Promise<Comment> {
-    try {
-      const res = await apiClient.post<{ comment: Comment }>(`/videos/${videoId}/comments`, { text });
-      return res.comment;
-    } catch (err) {
-      if (!USE_FALLBACK) throw err;
-
-      let currentUser = {
-        id: 'usr_me',
-        username: 'current_user',
-        avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=user',
-      };
-
-      if (typeof window !== 'undefined') {
-        const stored = localStorage.getItem('shortclip_auth');
-        if (stored) {
-          try {
-            currentUser = JSON.parse(stored).user;
-          } catch {}
-        }
-      }
-
-      const newComment: Comment = {
-        id: `cmt_${Date.now()}`,
-        videoId,
-        user: currentUser,
-        text,
-        createdAt: 'Just now',
-        likeCount: 0,
-        isLiked: false,
-      };
-
-      if (!runtimeComments[videoId]) {
-        runtimeComments[videoId] = [];
-      }
-      runtimeComments[videoId].unshift(newComment);
-
-      // Increment commentCount on video
-      const video = runtimeVideos.find((v) => v.id === videoId);
-      if (video) {
-        video.commentCount += 1;
-      }
-
-      return newComment;
-    }
+    const res = await apiClient.post<{ comment: Comment } | Comment>(`/videos/${videoId}/comments`, { text });
+    return (res as any)?.comment || res;
   },
 
   /**
@@ -150,12 +106,7 @@ export const videosApi = {
   async shareVideo(videoId: string): Promise<{ shareCount: number }> {
     try {
       return await apiClient.post<{ shareCount: number }>(`/videos/${videoId}/share`);
-    } catch (err) {
-      const video = runtimeVideos.find((v) => v.id === videoId);
-      if (video) {
-        video.shareCount += 1;
-        return { shareCount: video.shareCount };
-      }
+    } catch {
       return { shareCount: 1 };
     }
   },
@@ -164,79 +115,14 @@ export const videosApi = {
    * Toggle follow creator
    */
   async toggleFollow(userId: string): Promise<FollowResponse> {
-    try {
-      return await apiClient.post<FollowResponse>(`/users/${userId}/follow`);
-    } catch (err) {
-      // Toggle in runtime videos
-      runtimeVideos = runtimeVideos.map((v) => {
-        if (v.creator.id === userId) {
-          const isFollowing = !v.creator.isFollowing;
-          return {
-            ...v,
-            creator: {
-              ...v.creator,
-              isFollowing,
-              followerCount: (v.creator.followerCount || 0) + (isFollowing ? 1 : -1),
-            },
-          };
-        }
-        return v;
-      });
-
-      const updated = runtimeVideos.find((v) => v.creator.id === userId);
-      return {
-        userId,
-        isFollowing: updated?.creator.isFollowing ?? true,
-      };
-    }
+    return await apiClient.post<FollowResponse>(`/users/${userId}/follow`);
   },
 
   /**
    * Create and publish a new video clip (Requires Auth)
    */
   async createVideo(dto: CreateVideoDto): Promise<Video> {
-    try {
-      return await apiClient.post<Video>('/videos', dto);
-    } catch (err) {
-      if (!USE_FALLBACK) throw err;
-
-      let currentUser = {
-        id: 'usr_me',
-        username: 'creator_user',
-        name: 'Creator User',
-        avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=creator',
-        followerCount: 1,
-        isFollowing: false,
-      };
-
-      if (typeof window !== 'undefined') {
-        const stored = localStorage.getItem('shortclip_auth');
-        if (stored) {
-          try {
-            currentUser = JSON.parse(stored).user;
-          } catch {}
-        }
-      }
-
-      const newVideo: Video = {
-        id: `vid_${Date.now()}`,
-        videoUrl: dto.videoUrl,
-        thumbnailUrl: dto.thumbnailUrl || dto.videoUrl,
-        description: dto.description || 'New ShortClip creation 🔥',
-        tags: dto.tags && dto.tags.length > 0 ? dto.tags : ['shortclip', 'creator'],
-        soundTitle: dto.soundTitle || 'Original Audio',
-        creator: currentUser,
-        likeCount: 0,
-        isLiked: false,
-        commentCount: 0,
-        shareCount: 0,
-        downloadUrl: dto.videoUrl,
-        createdAt: 'Just now',
-      };
-
-      // Add to front of runtime feed
-      runtimeVideos.unshift(newVideo);
-      return newVideo;
-    }
+    const res = await apiClient.post<{ video: Video } | Video>('/videos', dto);
+    return (res as any)?.video || res;
   },
 };

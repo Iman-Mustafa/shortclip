@@ -108,10 +108,17 @@ export const FeedContainer: React.FC = () => {
           color: '#fff',
         }}
       >
-        <h3 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '8px' }}>No Videos Yet</h3>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '20px' }}>
-          Connected to backend API. Publish your first video to see it in the stream!
+        <h3 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '8px' }}>No Videos in Feed Yet</h3>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '24px', maxWidth: '320px' }}>
+          Connected to backend. Upload or record your first short clip to start the feed!
         </p>
+        <a
+          href="/studio"
+          className="dropzone-btn"
+          style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+        >
+          <span>Open Creator Studio</span>
+        </a>
       </div>
     );
   }
