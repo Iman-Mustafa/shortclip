@@ -1,21 +1,19 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
-  X,
+  ArrowLeft,
+  Clapperboard,
   Upload,
   Camera,
   Film,
-  Sparkles,
-  Music,
-  Hash,
-  Play,
   RotateCcw,
   CheckCircle,
   AlertCircle,
   Video as VideoIcon,
   LogOut,
-  Sliders,
   BadgeCheck,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -23,9 +21,10 @@ import { useFeed } from '@/context/FeedContext';
 
 type StudioTab = 'upload' | 'record' | 'my-clips';
 
-export const ProfileStudioModal: React.FC = () => {
-  const { user, logout } = useAuth();
-  const { isProfileStudioOpen, closeProfileStudio, publishVideo, videos } = useFeed();
+export default function StudioPage() {
+  const router = useRouter();
+  const { user, isAuthenticated, logout, openAuthModal } = useAuth();
+  const { publishVideo, videos, showToast } = useFeed();
 
   const [activeTab, setActiveTab] = useState<StudioTab>('upload');
 
@@ -51,18 +50,12 @@ export const ProfileStudioModal: React.FC = () => {
   const recordedChunksRef = useRef<Blob[]>([]);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Filter clips published by this user
-  const userClips = videos.filter(
-    (v) => v.creator.id === user?.id || v.creator.username === user?.username
-  );
-
-  // Clean up camera stream and timers when modal closes
+  // Clean up camera stream and timers on unmount
   useEffect(() => {
-    if (!isProfileStudioOpen) {
+    return () => {
       stopCameraStream();
-      resetForm();
-    }
-  }, [isProfileStudioOpen]);
+    };
+  }, []);
 
   const stopCameraStream = () => {
     if (mediaStream) {
@@ -77,17 +70,9 @@ export const ProfileStudioModal: React.FC = () => {
     setRecordingTime(0);
   };
 
-  const resetForm = () => {
-    setDescription('');
-    setSoundTitle('');
-    setTagsInput('fyp, trending, shortclip');
-    setVideoFile(null);
-    setVideoPreviewUrl(null);
-    setRecordedBlob(null);
-    setErrorMsg(null);
-    setCameraError(null);
-    setIsSubmitting(false);
-  };
+  const userClips = videos.filter(
+    (v) => v.creator.id === user?.id || v.creator.username === user?.username
+  );
 
   // Handle File Selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -210,7 +195,7 @@ export const ProfileStudioModal: React.FC = () => {
     }
 
     if (!description.trim()) {
-      setErrorMsg('Please write a brief caption for your video.');
+      setErrorMsg('Please write a caption for your video.');
       return;
     }
 
@@ -228,7 +213,7 @@ export const ProfileStudioModal: React.FC = () => {
         tags: tags.length > 0 ? tags : ['shortclip'],
       });
       stopCameraStream();
-      resetForm();
+      router.push('/');
     } catch (err: any) {
       setErrorMsg(err?.message || 'Failed to publish video. Please try again.');
     } finally {
@@ -236,18 +221,87 @@ export const ProfileStudioModal: React.FC = () => {
     }
   };
 
-  if (!isProfileStudioOpen || !user) return null;
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="studio-standalone-page">
+        <header className="app-header">
+          <Link href="/" className="brand-logo">
+            <div className="brand-icon-wrapper">
+              <Clapperboard size={24} color="#fff" />
+            </div>
+            <div>
+              <span className="brand-text">ShortClip</span>
+              <span className="brand-badge">PRO</span>
+            </div>
+          </Link>
+          <Link href="/" className="back-feed-link">
+            <ArrowLeft size={16} />
+            <span>Back to Feed</span>
+          </Link>
+        </header>
+
+        <div className="studio-auth-prompt-card">
+          <h2>Creator Studio</h2>
+          <p>Please sign in to access your profile, post videos, and record live clips.</p>
+          <button onClick={() => openAuthModal()} className="auth-signin-btn" style={{ marginTop: '16px' }}>
+            Sign In to Continue
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="modal-backdrop" onClick={closeProfileStudio}>
-      <div
-        className="profile-studio-modal"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-      >
-        {/* Modal Header & User Summary */}
-        <div className="studio-header">
+    <div className="studio-standalone-page">
+      {/* Background ambient lighting */}
+      <div className="ambient-glow-left" />
+      <div className="ambient-glow-right" />
+
+      {/* Top Application Header */}
+      <header className="app-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <Link href="/" className="brand-logo">
+            <div className="brand-icon-wrapper">
+              <Clapperboard size={24} color="#fff" />
+            </div>
+            <div>
+              <span className="brand-text">ShortClip</span>
+              <span className="brand-badge">STUDIO</span>
+            </div>
+          </Link>
+        </div>
+
+        <div className="desktop-auth-nav">
+          <Link href="/" className="back-feed-link">
+            <ArrowLeft size={16} />
+            <span>Back to Feed</span>
+          </Link>
+
+          <div className="user-profile-badge">
+            <img
+              src={user.avatarUrl || 'https://api.dicebear.com/7.x/bottts/svg?seed=user'}
+              alt={user.username}
+              className="user-badge-avatar"
+            />
+            <span className="user-badge-name">@{user.username}</span>
+            <button
+              onClick={() => {
+                logout();
+                router.push('/');
+              }}
+              className="user-badge-logout"
+              title="Log Out"
+            >
+              <LogOut size={15} />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Studio Workspace Container */}
+      <main className="studio-workspace">
+        {/* User Summary Card */}
+        <div className="studio-profile-bar">
           <div className="studio-user-card">
             <img
               src={user.avatarUrl || 'https://api.dicebear.com/7.x/bottts/svg?seed=user'}
@@ -262,7 +316,6 @@ export const ProfileStudioModal: React.FC = () => {
               </div>
               <p className="studio-user-bio">{user.bio || 'ShortClip Creator Studio'}</p>
               
-              {/* Creator Stats */}
               <div className="studio-stats-pills">
                 <span className="stat-pill">
                   <strong>{userClips.length}</strong> Clips
@@ -276,30 +329,9 @@ export const ProfileStudioModal: React.FC = () => {
               </div>
             </div>
           </div>
-
-          <div className="studio-header-actions">
-            <button
-              onClick={() => {
-                logout();
-                closeProfileStudio();
-              }}
-              className="studio-logout-btn"
-              title="Sign Out"
-            >
-              <LogOut size={16} />
-              <span>Log Out</span>
-            </button>
-            <button
-              onClick={closeProfileStudio}
-              className="modal-close-btn"
-              aria-label="Close Studio"
-            >
-              <X size={20} />
-            </button>
-          </div>
         </div>
 
-        {/* Studio Navigation Switcher */}
+        {/* Tab Switcher */}
         <div className="studio-tab-bar">
           <button
             className={`studio-tab ${activeTab === 'upload' ? 'active' : ''}`}
@@ -326,9 +358,9 @@ export const ProfileStudioModal: React.FC = () => {
 
         {/* Tab Content 1: Upload Video */}
         {activeTab === 'upload' && (
-          <form onSubmit={handlePublish} className="studio-body">
+          <form onSubmit={handlePublish} className="studio-card-container">
             <div className="studio-content-layout">
-              {/* Left Column: Dropzone / Preview */}
+              {/* Left: Video Dropzone / Preview */}
               <div className="studio-preview-col">
                 {videoPreviewUrl ? (
                   <div className="studio-video-preview-wrapper">
@@ -372,14 +404,12 @@ export const ProfileStudioModal: React.FC = () => {
                 )}
               </div>
 
-              {/* Right Column: Metadata Form */}
+              {/* Right: Metadata Form */}
               <div className="studio-meta-col">
                 <div className="form-group">
-                  <label>
-                    <Sparkles size={14} style={{ color: '#ff2d55' }} /> Caption & Description
-                  </label>
+                  <label>Caption & Description</label>
                   <textarea
-                    rows={3}
+                    rows={4}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Tell your viewers what this clip is about..."
@@ -389,27 +419,23 @@ export const ProfileStudioModal: React.FC = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>
-                    <Music size={14} style={{ color: '#00f2fe' }} /> Sound / Track Title
-                  </label>
+                  <label>Audio Track Name</label>
                   <input
                     type="text"
                     value={soundTitle}
                     onChange={(e) => setSoundTitle(e.target.value)}
-                    placeholder="Original Audio - @username"
+                    placeholder="Original Sound - @username"
                     className="studio-input"
                   />
                 </div>
 
                 <div className="form-group">
-                  <label>
-                    <Hash size={14} style={{ color: '#9b51e0' }} /> Hashtags (comma separated)
-                  </label>
+                  <label>Hashtags & Tags (comma separated)</label>
                   <input
                     type="text"
                     value={tagsInput}
                     onChange={(e) => setTagsInput(e.target.value)}
-                    placeholder="fyp, trending, creative"
+                    placeholder="fyp, trending, shortclip"
                     className="studio-input"
                   />
                 </div>
@@ -442,9 +468,9 @@ export const ProfileStudioModal: React.FC = () => {
 
         {/* Tab Content 2: Live Camera Recording */}
         {activeTab === 'record' && (
-          <form onSubmit={handlePublish} className="studio-body">
+          <form onSubmit={handlePublish} className="studio-card-container">
             <div className="studio-content-layout">
-              {/* Left Column: Live Viewfinder or Recorded Preview */}
+              {/* Left: Viewfinder / Review */}
               <div className="studio-preview-col">
                 {videoPreviewUrl ? (
                   <div className="studio-video-preview-wrapper">
@@ -473,7 +499,6 @@ export const ProfileStudioModal: React.FC = () => {
                       className="camera-stream-video"
                     />
 
-                    {/* Camera Recording Overlay Bar */}
                     <div className="camera-overlay-controls">
                       {isRecording && (
                         <div className="recording-badge-pill">
@@ -522,14 +547,12 @@ export const ProfileStudioModal: React.FC = () => {
                 )}
               </div>
 
-              {/* Right Column: Metadata Form */}
+              {/* Right: Metadata Form */}
               <div className="studio-meta-col">
                 <div className="form-group">
-                  <label>
-                    <Sparkles size={14} style={{ color: '#ff2d55' }} /> Caption & Description
-                  </label>
+                  <label>Caption & Description</label>
                   <textarea
-                    rows={3}
+                    rows={4}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Recorded live on ShortClip! Add details..."
@@ -539,9 +562,7 @@ export const ProfileStudioModal: React.FC = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>
-                    <Music size={14} style={{ color: '#00f2fe' }} /> Sound / Track Title
-                  </label>
+                  <label>Audio Track Name</label>
                   <input
                     type="text"
                     value={soundTitle}
@@ -552,9 +573,7 @@ export const ProfileStudioModal: React.FC = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>
-                    <Hash size={14} style={{ color: '#9b51e0' }} /> Hashtags
-                  </label>
+                  <label>Hashtags & Tags</label>
                   <input
                     type="text"
                     value={tagsInput}
@@ -592,7 +611,7 @@ export const ProfileStudioModal: React.FC = () => {
 
         {/* Tab Content 3: My Clips Gallery */}
         {activeTab === 'my-clips' && (
-          <div className="studio-body">
+          <div className="studio-card-container">
             {userClips.length === 0 ? (
               <div className="empty-clips-view">
                 <VideoIcon size={40} color="rgba(255,255,255,0.3)" />
@@ -625,7 +644,7 @@ export const ProfileStudioModal: React.FC = () => {
             )}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
-};
+}

@@ -1,19 +1,19 @@
 'use client';
 
 import React from 'react';
-import { Clapperboard, Flame, LogIn, LogOut, Plus, Video as VideoIcon } from 'lucide-react';
+import Link from 'next/link';
+import { Clapperboard, Flame, LogIn, LogOut, Plus } from 'lucide-react';
 import { FeedContainer } from '@/components/FeedContainer';
 import { AuthModal } from '@/components/AuthModal';
 import { CommentsDrawer } from '@/components/CommentsDrawer';
 import { ShareModal } from '@/components/ShareModal';
 import { ZoomModal } from '@/components/ZoomModal';
-import { ProfileStudioModal } from '@/components/ProfileStudioModal';
 import { useAuth } from '@/context/AuthContext';
 import { useFeed } from '@/context/FeedContext';
 
 export default function HomePage() {
   const { user, isAuthenticated, logout, openAuthModal } = useAuth();
-  const { toastMessage, openProfileStudio } = useFeed();
+  const { toastMessage } = useFeed();
 
   return (
     <main className="app-container">
@@ -37,21 +37,22 @@ export default function HomePage() {
         <div className="desktop-auth-nav">
           {isAuthenticated && user ? (
             <div className="user-nav-group">
-              {/* Quick Post / Studio Button */}
-              <button
-                onClick={() => openProfileStudio()}
+              {/* Quick Post / Studio Link */}
+              <Link
+                href="/studio"
                 className="header-create-btn"
                 title="Post or Record Video"
               >
                 <Plus size={16} />
                 <span>Create</span>
-              </button>
+              </Link>
 
-              {/* User Profile Avatar Trigger */}
-              <div
+              {/* User Profile Avatar Link to Studio */}
+              <Link
+                href="/studio"
                 className="user-profile-badge interactive"
-                onClick={() => openProfileStudio()}
                 title="Open Profile & Creator Studio"
+                style={{ textDecoration: 'none' }}
               >
                 <img
                   src={user.avatarUrl || 'https://api.dicebear.com/7.x/bottts/svg?seed=user'}
@@ -61,6 +62,7 @@ export default function HomePage() {
                 <span className="user-badge-name">@{user.username}</span>
                 <button
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     logout();
                   }}
@@ -69,7 +71,7 @@ export default function HomePage() {
                 >
                   <LogOut size={15} />
                 </button>
-              </div>
+              </Link>
             </div>
           ) : (
             <button
@@ -88,7 +90,6 @@ export default function HomePage() {
 
       {/* Overlays & Drawers */}
       <AuthModal />
-      <ProfileStudioModal />
       <CommentsDrawer />
       <ShareModal />
       <ZoomModal />
