@@ -102,7 +102,6 @@ export default function StudioPage() {
     (v) => v.creator.id === user?.id || v.creator.username === user?.username
   );
 
-  // Handle File Selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -111,9 +110,12 @@ export default function StudioPage() {
         return;
       }
       setVideoFile(file);
-      const url = URL.createObjectURL(file);
-      setVideoPreviewUrl(url);
-      setErrorMsg(null);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setVideoPreviewUrl(reader.result as string);
+        setErrorMsg(null);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -168,8 +170,11 @@ export default function StudioPage() {
       recorder.onstop = () => {
         const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
         setRecordedBlob(blob);
-        const preview = URL.createObjectURL(blob);
-        setVideoPreviewUrl(preview);
+        const reader = new FileReader();
+        reader.onload = () => {
+          setVideoPreviewUrl(reader.result as string);
+        };
+        reader.readAsDataURL(blob);
       };
 
       recorder.start(200);

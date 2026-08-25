@@ -105,6 +105,13 @@ const createVideo = async (req, res) => {
         resource_type: 'video',
       });
       videoUrl = result.secure_url;
+    } else if (videoUrl && videoUrl.startsWith('data:video/')) {
+      // If frontend sent a base64 Data URL directly
+      const result = await require('../config/cloudinary').uploader.upload(videoUrl, {
+        folder: 'shortclip/videos',
+        resource_type: 'video',
+      });
+      videoUrl = result.secure_url;
     }
 
     if (!videoUrl) {
