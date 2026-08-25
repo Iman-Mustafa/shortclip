@@ -9,6 +9,7 @@ const {
   getComments,
   postComment,
   shareVideo,
+  updateVideo,
 } = require('../controllers/videoController');
 
 // GET /api/videos — public feed with optional auth for isLiked enrichment
@@ -28,5 +29,8 @@ router.post('/:id/comments', requireAuth, postComment);
 
 // POST /api/videos/:id/share — increment share count
 router.post('/:id/share', shareVideo);
+
+// PUT /api/videos/:id — update video
+router.put('/:id', requireAuth, updateVideo);
 
 module.exports = router;

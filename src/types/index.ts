@@ -97,3 +97,9 @@ export interface CreateVideoDto {
   thumbnailUrl?: string;
 }
 
+export interface UpdateVideoDto {
+  description?: string;
+  soundTitle?: string;
+  tags?: string[];
+}
+

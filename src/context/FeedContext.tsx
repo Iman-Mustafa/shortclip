@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Video, Comment, CreateVideoDto } from '@/types';
+import { Video, Comment, CreateVideoDto, UpdateVideoDto } from '@/types';
 import { videosApi } from '@/lib/api/videos';
 import { useAuth } from './AuthContext';
 
@@ -29,6 +29,10 @@ interface FeedContextType {
   openProfileStudio: () => void;
   closeProfileStudio: () => void;
   publishVideo: (dto: CreateVideoDto) => Promise<Video>;
+  updateVideo: (videoId: string, dto: UpdateVideoDto) => Promise<Video>;
+  activeEditVideo: Video | null;
+  openEditModal: (video: Video) => void;
+  closeEditModal: () => void;
   toastMessage: string | null;
   showToast: (msg: string) => void;
 }
@@ -45,6 +49,7 @@ export const FeedProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Modals & Drawers state
   const [activeCommentVideo, setActiveCommentVideo] = useState<Video | null>(null);
   const [activeShareVideo, setActiveShareVideo] = useState<Video | null>(null);
+  const [activeEditVideo, setActiveEditVideo] = useState<Video | null>(null);
   const [zoomedVideo, setZoomedVideo] = useState<Video | null>(null);
   const [isProfileStudioOpen, setIsProfileStudioOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -75,6 +80,22 @@ export const FeedProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return created;
       } catch (err: any) {
         showToast(err?.message || 'Failed to publish video');
+        throw err;
+      }
+    },
+    [showToast]
+  );
+
+  const updateVideo = useCallback(
+    async (videoId: string, dto: UpdateVideoDto): Promise<Video> => {
+      try {
+        const updated = await videosApi.updateVideo(videoId, dto);
+        setVideos((prev) => prev.map((v) => (v.id === videoId ? { ...v, ...updated } : v)));
+        setActiveEditVideo(null);
+        showToast('✅ Video updated successfully!');
+        return updated;
+      } catch (err: any) {
+        showToast(err?.message || 'Failed to update video');
         throw err;
       }
     },
@@ -203,6 +224,9 @@ export const FeedProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const openShare = (video: Video) => setActiveShareVideo(video);
   const closeShare = () => setActiveShareVideo(null);
 
+  const openEditModal = (video: Video) => setActiveEditVideo(video);
+  const closeEditModal = () => setActiveEditVideo(null);
+
   const openZoom = (video: Video) => setZoomedVideo(video);
   const closeZoom = () => setZoomedVideo(null);
 
@@ -227,6 +251,9 @@ export const FeedProvider: React.FC<{ children: React.ReactNode }> = ({ children
         activeShareVideo,
         openShare,
         closeShare,
+        activeEditVideo,
+        openEditModal,
+        closeEditModal,
         zoomedVideo,
         openZoom,
         closeZoom,

@@ -308,4 +308,68 @@ const shareVideo = async (req, res) => {
   }
 };
 
-module.exports = { getFeed, createVideo, toggleLike, getComments, postComment, shareVideo };
+/**
+ * PUT /api/videos/:id
+ * Update a video
+ * Auth: Required
+ * Body: { description, tags, soundTitle }
+ * Returns: { video }
+ */
+const updateVideo = async (req, res) => {
+  try {
+    const video = await Video.findById(req.params.id);
+    if (!video) {
+      return res.status(404).json({ message: 'Video not found' });
+    }
+
+    if (video.creator.toString() !== req.userId) {
+      return res.status(403).json({ message: 'You are not authorized to update this video' });
+    }
+
+    const { description, tags, soundTitle } = req.body;
+
+    if (description !== undefined) video.description = description;
+    if (soundTitle !== undefined) video.soundTitle = soundTitle;
+    if (tags !== undefined) {
+      video.tags = Array.isArray(tags) ? tags : tags.split(',').map((t) => t.trim());
+    }
+
+    await video.save();
+    
+    // Populate creator for response
+    await video.populate('creator', 'username name avatarUrl bio followers');
+
+    const creator = video.creator;
+    const requestingUserId = req.userId;
+    const creatorFollowers = creator.followers || [];
+
+    res.json({
+      video: {
+        id: video._id.toString(),
+        videoUrl: video.videoUrl,
+        thumbnailUrl: video.thumbnailUrl || undefined,
+        description: video.description,
+        tags: video.tags,
+        soundTitle: video.soundTitle,
+        creator: {
+          id: creator._id.toString(),
+          username: creator.username,
+          avatarUrl: creator.avatarUrl || undefined,
+          isFollowing: creatorFollowers.some((fid) => fid.toString() === requestingUserId),
+          followerCount: creatorFollowers.length,
+        },
+        likeCount: video.likes ? video.likes.length : 0,
+        isLiked: video.likes ? video.likes.some((uid) => uid.toString() === requestingUserId) : false,
+        commentCount: await Comment.countDocuments({ videoId: video._id }),
+        shareCount: video.shareCount || 0,
+        downloadUrl: video.downloadUrl || video.videoUrl,
+        createdAt: video.createdAt.toISOString(),
+      }
+    });
+  } catch (error) {
+    console.error('UpdateVideo error:', error);
+    res.status(500).json({ message: 'Server error updating video' });
+  }
+};
+
+module.exports = { getFeed, createVideo, toggleLike, getComments, postComment, shareVideo, updateVideo };

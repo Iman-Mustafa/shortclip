@@ -6,6 +6,7 @@ import {
   PaginatedVideosResponse,
   FollowResponse,
   CreateVideoDto,
+  UpdateVideoDto,
 } from '@/types';
 
 /**
@@ -123,6 +124,14 @@ export const videosApi = {
    */
   async createVideo(dto: CreateVideoDto): Promise<Video> {
     const res = await apiClient.post<{ video: Video } | Video>('/videos', dto);
+    return (res as any)?.video || res;
+  },
+
+  /**
+   * Update a video (Requires Auth)
+   */
+  async updateVideo(videoId: string, dto: UpdateVideoDto): Promise<Video> {
+    const res = await apiClient.put<{ video: Video } | Video>(`/videos/${videoId}`, dto);
     return (res as any)?.video || res;
   },
 };

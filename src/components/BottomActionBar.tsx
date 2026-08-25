@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
-import { Heart, MessageCircle, Share2, Download } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Download, Pencil } from 'lucide-react';
 import { Video } from '@/types';
 import { useFeed } from '@/context/FeedContext';
+import { useAuth } from '@/context/AuthContext';
 
 interface BottomActionBarProps {
   video: Video;
@@ -20,7 +21,8 @@ function formatCount(num: number): string {
 }
 
 export const BottomActionBar: React.FC<BottomActionBarProps> = ({ video }) => {
-  const { toggleLike, openComments, openShare, showToast } = useFeed();
+  const { toggleLike, openComments, openShare, showToast, openEditModal } = useFeed();
+  const { isAuthenticated, user } = useAuth();
 
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -99,6 +101,22 @@ export const BottomActionBar: React.FC<BottomActionBarProps> = ({ video }) => {
         <Download className="action-btn-icon" />
         <span className="action-btn-label">Save</span>
       </button>
+
+      {/* Edit Button (Only if owner) */}
+      {isAuthenticated && user?.id === video.creator.id && (
+        <button
+          className="action-btn-item edit-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            openEditModal(video);
+          }}
+          title="Edit Video"
+          aria-label="Edit"
+        >
+          <Pencil className="action-btn-icon" />
+          <span className="action-btn-label">Edit</span>
+        </button>
+      )}
     </div>
   );
 };
