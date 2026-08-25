@@ -257,20 +257,44 @@ export default function StudioPage() {
       <div className="ambient-glow-left" />
       <div className="ambient-glow-right" />
 
-      {/* Top Application Header */}
-      <header className="app-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <Link href="/" className="brand-logo">
-            <div className="brand-icon-wrapper">
-              <Clapperboard size={24} color="#fff" />
-            </div>
-            <div>
-              <span className="brand-text">ShortClip</span>
-              <span className="brand-badge">STUDIO</span>
-            </div>
-          </Link>
+      {/* Top Application Header with Navigation Tabs */}
+      <header className="app-header studio-page-header">
+        <Link href="/" className="brand-logo">
+          <div className="brand-icon-wrapper">
+            <Clapperboard size={22} color="#fff" />
+          </div>
+          <div>
+            <span className="brand-text">ShortClip</span>
+            <span className="brand-badge">STUDIO</span>
+          </div>
+        </Link>
+
+        {/* Center: Tabs in Header Area */}
+        <div className="header-studio-tabs">
+          <button
+            className={`header-studio-tab ${activeTab === 'upload' ? 'active' : ''}`}
+            onClick={() => handleTabChange('upload')}
+          >
+            <Upload size={15} />
+            <span>Upload Video</span>
+          </button>
+          <button
+            className={`header-studio-tab ${activeTab === 'record' ? 'active' : ''}`}
+            onClick={() => handleTabChange('record')}
+          >
+            <Camera size={15} />
+            <span>Record Camera</span>
+          </button>
+          <button
+            className={`header-studio-tab ${activeTab === 'my-clips' ? 'active' : ''}`}
+            onClick={() => handleTabChange('my-clips')}
+          >
+            <Film size={15} />
+            <span>My Clips ({userClips.length})</span>
+          </button>
         </div>
 
+        {/* Right: Back to Feed & User info */}
         <div className="desktop-auth-nav">
           <Link href="/" className="back-feed-link">
             <ArrowLeft size={16} />
@@ -329,31 +353,6 @@ export default function StudioPage() {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Tab Switcher */}
-        <div className="studio-tab-bar">
-          <button
-            className={`studio-tab ${activeTab === 'upload' ? 'active' : ''}`}
-            onClick={() => handleTabChange('upload')}
-          >
-            <Upload size={16} />
-            <span>Upload Video</span>
-          </button>
-          <button
-            className={`studio-tab ${activeTab === 'record' ? 'active' : ''}`}
-            onClick={() => handleTabChange('record')}
-          >
-            <Camera size={16} />
-            <span>Record Camera</span>
-          </button>
-          <button
-            className={`studio-tab ${activeTab === 'my-clips' ? 'active' : ''}`}
-            onClick={() => handleTabChange('my-clips')}
-          >
-            <Film size={16} />
-            <span>My Clips ({userClips.length})</span>
-          </button>
         </div>
 
         {/* Tab Content 1: Upload Video */}
