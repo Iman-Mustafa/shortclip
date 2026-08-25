@@ -18,10 +18,23 @@ const PORT = process.env.PORT || 5000;
 // Security headers
 app.use(helmet());
 
-// CORS — allow the Next.js frontend
+// CORS — allow frontend origins (local dev + production)
+const allowedOrigins = [
+  'http://localhost:3005',
+  'http://localhost:3000',
+  'https://shortclip-3f19.onrender.com',
+];
+
+// Add any extra origins from CORS_ORIGIN env var (comma-separated)
+if (process.env.CORS_ORIGIN) {
+  process.env.CORS_ORIGIN.split(',').forEach((origin) => {
+    allowedOrigins.push(origin.trim());
+  });
+}
+
 app.use(
   cors({
-    origin: ['http://localhost:3005', 'http://localhost:3000'],
+    origin: allowedOrigins,
     credentials: true,
   })
 );
@@ -71,9 +84,9 @@ app.use((req, res) => {
 const startServer = async () => {
   await connectDB();
 
-  app.listen(PORT, () => {
-    console.log(`\n🚀 ShortClip API running on http://localhost:${PORT}`);
-    console.log(`📡 Health check: http://localhost:${PORT}/api/health\n`);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n🚀 ShortClip API running on port ${PORT}`);
+    console.log(`📡 Health check: /api/health\n`);
   });
 };
 
