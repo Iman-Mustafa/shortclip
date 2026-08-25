@@ -459,7 +459,7 @@ const getSavedVideos = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const savedVideos = (user.savedVideos || []).filter(Boolean);
+    const savedVideos = (user.savedVideos || []).filter((v) => v && v._id);
     const videoIds = savedVideos.map((v) => v._id);
 
     const commentCounts = await Comment.aggregate([

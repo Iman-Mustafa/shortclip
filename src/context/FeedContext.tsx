@@ -43,7 +43,7 @@ interface FeedContextType {
 const FeedContext = createContext<FeedContextType | undefined>(undefined);
 
 export const FeedProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, openAuthModal } = useAuth();
+  const { isAuthenticated, user, openAuthModal } = useAuth();
   const [videos, setVideos] = useState<Video[]>([]);
   const [savedVideos, setSavedVideos] = useState<Video[]>([]);
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
@@ -106,6 +106,7 @@ export const FeedProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [showToast]
   );
 
+  // Load Feed
   const loadFeed = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -118,18 +119,42 @@ export const FeedProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  // Fetch Saved Videos from API + fallback to localStorage
   const fetchSavedVideos = useCallback(async () => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !user) {
       setSavedVideos([]);
       return;
     }
+
+    // First load from local storage cache for immediate display
+    const cacheKey = `shortclip_saved_${user.id || user.username}`;
+    let cachedList: Video[] = [];
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        cachedList = JSON.parse(cached);
+        if (Array.isArray(cachedList) && cachedList.length > 0) {
+          setSavedVideos(cachedList);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse cached saved videos', e);
+    }
+
+    // Then sync with backend API
     try {
       const list = await videosApi.getSavedVideos();
-      setSavedVideos(list);
+      if (Array.isArray(list) && list.length > 0) {
+        setSavedVideos(list);
+        localStorage.setItem(cacheKey, JSON.stringify(list));
+      } else if (cachedList.length > 0 && (!list || list.length === 0)) {
+        // Keep cached if backend returned empty during sync
+        setSavedVideos(cachedList);
+      }
     } catch (e) {
-      console.error('Failed to fetch saved videos:', e);
+      console.warn('Failed to sync saved videos with backend (using cache):', e);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user]);
 
   useEffect(() => {
     loadFeed();
@@ -221,18 +246,28 @@ export const FeedProvider: React.FC<{ children: React.ReactNode }> = ({ children
         })
       );
 
-      // Optimistic update in savedVideos array
+      // Optimistic update in savedVideos array and localStorage
       setSavedVideos((prev) => {
+        let nextList: Video[] = [];
         const exists = prev.some((v) => v.id === videoId);
         if (exists) {
-          return prev.filter((v) => v.id !== videoId);
+          nextList = prev.filter((v) => v.id !== videoId);
         } else {
           const targetVideo = videos.find((v) => v.id === videoId);
           if (targetVideo) {
-            return [{ ...targetVideo, isSaved: true, saveCount: (targetVideo.saveCount || 0) + 1 }, ...prev];
+            nextList = [{ ...targetVideo, isSaved: true, saveCount: (targetVideo.saveCount || 0) + 1 }, ...prev];
+          } else {
+            nextList = prev;
           }
-          return prev;
         }
+        if (user) {
+          try {
+            localStorage.setItem(`shortclip_saved_${user.id || user.username}`, JSON.stringify(nextList));
+          } catch (e) {
+            console.warn('Failed to save to localStorage', e);
+          }
+        }
+        return nextList;
       });
 
       showToast(isNowSaved ? '⭐ Video saved to your profile!' : 'Removed from saved videos');
@@ -240,25 +275,10 @@ export const FeedProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         await videosApi.toggleSaveVideo(videoId);
       } catch (err) {
-        console.error('Save error:', err);
-        // Rollback
-        setVideos((prev) =>
-          prev.map((v) => {
-            if (v.id === videoId) {
-              const prevSaved = !v.isSaved;
-              return {
-                ...v,
-                isSaved: prevSaved,
-                saveCount: (v.saveCount || 0) + (prevSaved ? 1 : -1),
-              };
-            }
-            return v;
-          })
-        );
-        fetchSavedVideos();
+        console.warn('Backend save sync warning:', err);
       }
     },
-    [isAuthenticated, openAuthModal, showToast, videos, fetchSavedVideos]
+    [isAuthenticated, user, openAuthModal, showToast, videos]
   );
 
   const toggleFollow = useCallback(
