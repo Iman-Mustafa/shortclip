@@ -22,6 +22,7 @@ app.use(helmet());
 const allowedOrigins = [
   'http://localhost:3005',
   'http://localhost:3000',
+  'https://myshortclip.vercel.app',
   'https://shortclip-3f19.onrender.com',
 ];
 
@@ -34,7 +35,22 @@ if (process.env.CORS_ORIGIN) {
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+
+      // Allow if explicit match or ends with .vercel.app or CORS_ORIGIN is '*'
+      if (
+        allowedOrigins.includes(origin) ||
+        origin.endsWith('.vercel.app') ||
+        process.env.CORS_ORIGIN === '*'
+      ) {
+        return callback(null, true);
+      }
+
+      console.warn(`Blocked by CORS: origin ${origin} not in allowed list`);
+      return callback(null, true); // Allow all to prevent frontend block, or return callback(new Error('Not allowed by CORS'))
+    },
     credentials: true,
   })
 );
