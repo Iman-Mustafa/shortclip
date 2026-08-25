@@ -40,8 +40,17 @@ const getFeed = async (req, res) => {
       commentCountMap[c._id.toString()] = c.count;
     });
 
-    // Transform videos to match frontend contract
+    // Check user saved videos if authenticated
     const requestingUserId = req.userId;
+    let userSavedVideoIds = new Set();
+    if (requestingUserId) {
+      const currentUser = await User.findById(requestingUserId).select('savedVideos').lean();
+      if (currentUser && currentUser.savedVideos) {
+        userSavedVideoIds = new Set(currentUser.savedVideos.map((id) => id.toString()));
+      }
+    }
+
+    // Transform videos to match frontend contract
     const transformedVideos = feedVideos.map((video) => {
       const creator = video.creator || {};
       const creatorFollowers = creator.followers || [];
@@ -65,6 +74,11 @@ const getFeed = async (req, res) => {
         likeCount: video.likes ? video.likes.length : 0,
         isLiked: requestingUserId
           ? (video.likes || []).some((uid) => uid.toString() === requestingUserId)
+          : false,
+        saveCount: video.saves ? video.saves.length : 0,
+        isSaved: requestingUserId
+          ? userSavedVideoIds.has(video._id.toString()) ||
+            (video.saves || []).some((uid) => uid.toString() === requestingUserId)
           : false,
         commentCount: commentCountMap[video._id.toString()] || 0,
         shareCount: video.shareCount || 0,
@@ -372,4 +386,137 @@ const updateVideo = async (req, res) => {
   }
 };
 
-module.exports = { getFeed, createVideo, toggleLike, getComments, postComment, shareVideo, updateVideo };
+/**
+ * POST /api/videos/:id/save
+ * Toggle save/bookmark on a video
+ * Auth: Required
+ * Returns: { videoId, isSaved, saveCount }
+ */
+const toggleSave = async (req, res) => {
+  try {
+    const video = await Video.findById(req.params.id);
+    if (!video) {
+      return res.status(404).json({ message: 'Video not found' });
+    }
+
+    const userId = req.userId;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (!video.saves) video.saves = [];
+    if (!user.savedVideos) user.savedVideos = [];
+
+    const saveIndexInVideo = video.saves.findIndex((uid) => uid.toString() === userId);
+    const saveIndexInUser = user.savedVideos.findIndex((vid) => vid.toString() === video._id.toString());
+
+    let isSaved = false;
+
+    if (saveIndexInVideo > -1 || saveIndexInUser > -1) {
+      // Unsave
+      if (saveIndexInVideo > -1) video.saves.splice(saveIndexInVideo, 1);
+      if (saveIndexInUser > -1) user.savedVideos.splice(saveIndexInUser, 1);
+      isSaved = false;
+    } else {
+      // Save
+      video.saves.push(userId);
+      user.savedVideos.push(video._id);
+      isSaved = true;
+    }
+
+    await Promise.all([video.save(), user.save()]);
+
+    res.json({
+      videoId: video._id.toString(),
+      isSaved,
+      saveCount: video.saves.length,
+    });
+  } catch (error) {
+    console.error('ToggleSave error:', error);
+    res.status(500).json({ message: 'Server error toggling save' });
+  }
+};
+
+/**
+ * GET /api/videos/saved
+ * Get all saved videos for current authenticated user
+ * Auth: Required
+ * Returns: { videos }
+ */
+const getSavedVideos = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const user = await User.findById(userId).populate({
+      path: 'savedVideos',
+      populate: {
+        path: 'creator',
+        select: 'username name avatarUrl bio followers',
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const savedVideos = (user.savedVideos || []).filter(Boolean);
+    const videoIds = savedVideos.map((v) => v._id);
+
+    const commentCounts = await Comment.aggregate([
+      { $match: { videoId: { $in: videoIds } } },
+      { $group: { _id: '$videoId', count: { $sum: 1 } } },
+    ]);
+    const commentCountMap = {};
+    commentCounts.forEach((c) => {
+      commentCountMap[c._id.toString()] = c.count;
+    });
+
+    const transformedVideos = savedVideos.map((video) => {
+      const creator = video.creator || {};
+      const creatorFollowers = creator.followers || [];
+
+      return {
+        id: video._id.toString(),
+        videoUrl: video.videoUrl,
+        thumbnailUrl: video.thumbnailUrl || undefined,
+        description: video.description || '',
+        tags: video.tags || [],
+        soundTitle: video.soundTitle || 'Original Sound',
+        creator: {
+          id: creator._id ? creator._id.toString() : '',
+          username: creator.username || '',
+          avatarUrl: creator.avatarUrl || undefined,
+          isFollowing: creatorFollowers.some((fid) => fid.toString() === userId),
+          followerCount: creatorFollowers.length,
+        },
+        likeCount: video.likes ? video.likes.length : 0,
+        isLiked: (video.likes || []).some((uid) => uid.toString() === userId),
+        saveCount: video.saves ? video.saves.length : 0,
+        isSaved: true,
+        commentCount: commentCountMap[video._id.toString()] || 0,
+        shareCount: video.shareCount || 0,
+        downloadUrl: video.downloadUrl || video.videoUrl,
+        createdAt: video.createdAt ? video.createdAt.toISOString() : new Date().toISOString(),
+      };
+    });
+
+    res.json({
+      videos: transformedVideos,
+    });
+  } catch (error) {
+    console.error('GetSavedVideos error:', error);
+    res.status(500).json({ message: 'Server error fetching saved videos' });
+  }
+};
+
+module.exports = {
+  getFeed,
+  createVideo,
+  toggleLike,
+  toggleSave,
+  getSavedVideos,
+  getComments,
+  postComment,
+  shareVideo,
+  updateVideo,
+};

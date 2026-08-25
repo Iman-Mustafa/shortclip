@@ -14,7 +14,10 @@ interface FeedContextType {
   toggleMute: () => void;
   setActiveVideoIndex: (index: number) => void;
   toggleLike: (videoId: string) => Promise<void>;
+  toggleSave: (videoId: string) => Promise<void>;
   toggleFollow: (userId: string) => Promise<void>;
+  savedVideos: Video[];
+  fetchSavedVideos: () => Promise<void>;
   shareVideo: (videoId: string) => Promise<void>;
   activeCommentVideo: Video | null;
   openComments: (video: Video) => void;
@@ -42,6 +45,7 @@ const FeedContext = createContext<FeedContextType | undefined>(undefined);
 export const FeedProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, openAuthModal } = useAuth();
   const [videos, setVideos] = useState<Video[]>([]);
+  const [savedVideos, setSavedVideos] = useState<Video[]>([]);
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
@@ -114,9 +118,30 @@ export const FeedProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  const fetchSavedVideos = useCallback(async () => {
+    if (!isAuthenticated) {
+      setSavedVideos([]);
+      return;
+    }
+    try {
+      const list = await videosApi.getSavedVideos();
+      setSavedVideos(list);
+    } catch (e) {
+      console.error('Failed to fetch saved videos:', e);
+    }
+  }, [isAuthenticated]);
+
   useEffect(() => {
     loadFeed();
   }, [loadFeed]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchSavedVideos();
+    } else {
+      setSavedVideos([]);
+    }
+  }, [isAuthenticated, fetchSavedVideos]);
 
   const toggleMute = useCallback(() => {
     setIsMuted((prev) => !prev);
@@ -169,6 +194,73 @@ export const FeedProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [isAuthenticated, openAuthModal]
   );
 
+  const toggleSave = useCallback(
+    async (videoId: string) => {
+      if (!isAuthenticated) {
+        openAuthModal(() => {
+          toggleSave(videoId);
+        });
+        return;
+      }
+
+      let isNowSaved = false;
+
+      // Optimistic update in videos feed
+      setVideos((prev) =>
+        prev.map((v) => {
+          if (v.id === videoId) {
+            const nextSaved = !v.isSaved;
+            isNowSaved = nextSaved;
+            return {
+              ...v,
+              isSaved: nextSaved,
+              saveCount: (v.saveCount || 0) + (nextSaved ? 1 : -1),
+            };
+          }
+          return v;
+        })
+      );
+
+      // Optimistic update in savedVideos array
+      setSavedVideos((prev) => {
+        const exists = prev.some((v) => v.id === videoId);
+        if (exists) {
+          return prev.filter((v) => v.id !== videoId);
+        } else {
+          const targetVideo = videos.find((v) => v.id === videoId);
+          if (targetVideo) {
+            return [{ ...targetVideo, isSaved: true, saveCount: (targetVideo.saveCount || 0) + 1 }, ...prev];
+          }
+          return prev;
+        }
+      });
+
+      showToast(isNowSaved ? '⭐ Video saved to your profile!' : 'Removed from saved videos');
+
+      try {
+        await videosApi.toggleSaveVideo(videoId);
+      } catch (err) {
+        console.error('Save error:', err);
+        // Rollback
+        setVideos((prev) =>
+          prev.map((v) => {
+            if (v.id === videoId) {
+              const prevSaved = !v.isSaved;
+              return {
+                ...v,
+                isSaved: prevSaved,
+                saveCount: (v.saveCount || 0) + (prevSaved ? 1 : -1),
+              };
+            }
+            return v;
+          })
+        );
+        fetchSavedVideos();
+      }
+    },
+    [isAuthenticated, openAuthModal, showToast, videos, fetchSavedVideos]
+  );
+
   const toggleFollow = useCallback(
     async (userId: string) => {
       if (!isAuthenticated) {
@@ -178,10 +270,15 @@ export const FeedProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
+      let targetCreatorName = '';
+      let isNowFollowing = false;
+
       setVideos((prev) =>
         prev.map((v) => {
           if (v.creator.id === userId) {
             const nextFollow = !v.creator.isFollowing;
+            isNowFollowing = nextFollow;
+            targetCreatorName = v.creator.username;
             return {
               ...v,
               creator: {
@@ -195,13 +292,32 @@ export const FeedProvider: React.FC<{ children: React.ReactNode }> = ({ children
         })
       );
 
+      showToast(isNowFollowing ? `✓ Following @${targetCreatorName || 'creator'}` : `Unfollowed @${targetCreatorName || 'creator'}`);
+
       try {
         await videosApi.toggleFollow(userId);
       } catch (err) {
         console.error('Follow error:', err);
+        // Rollback
+        setVideos((prev) =>
+          prev.map((v) => {
+            if (v.creator.id === userId) {
+              const prevFollow = !v.creator.isFollowing;
+              return {
+                ...v,
+                creator: {
+                  ...v.creator,
+                  isFollowing: prevFollow,
+                  followerCount: (v.creator.followerCount || 0) + (prevFollow ? 1 : -1),
+                },
+              };
+            }
+            return v;
+          })
+        );
       }
     },
-    [isAuthenticated, openAuthModal]
+    [isAuthenticated, openAuthModal, showToast]
   );
 
   const shareVideo = useCallback(
@@ -236,6 +352,8 @@ export const FeedProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <FeedContext.Provider
       value={{
         videos,
+        savedVideos,
+        fetchSavedVideos,
         activeVideoIndex,
         activeVideo,
         isLoading,
@@ -243,6 +361,7 @@ export const FeedProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toggleMute,
         setActiveVideoIndex,
         toggleLike,
+        toggleSave,
         toggleFollow,
         shareVideo,
         activeCommentVideo,
@@ -261,6 +380,7 @@ export const FeedProvider: React.FC<{ children: React.ReactNode }> = ({ children
         openProfileStudio,
         closeProfileStudio,
         publishVideo,
+        updateVideo,
         toastMessage,
         showToast,
       }}

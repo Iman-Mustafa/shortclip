@@ -3,6 +3,7 @@ import {
   Video,
   Comment,
   LikeResponse,
+  SaveResponse,
   PaginatedVideosResponse,
   FollowResponse,
   CreateVideoDto,
@@ -23,26 +24,36 @@ import {
  *    Header: Authorization: Bearer <token>
  *    Returns: { videoId: string, isLiked: boolean, likeCount: number }
  *
- * 3. Comments Endpoint:
+ * 3. Save / Bookmark Endpoint:
+ *    POST /videos/:id/save
+ *    Header: Authorization: Bearer <token>
+ *    Returns: { videoId: string, isSaved: boolean, saveCount: number }
+ *
+ * 4. Get Saved Videos:
+ *    GET /videos/saved
+ *    Header: Authorization: Bearer <token>
+ *    Returns: { videos: Video[] }
+ *
+ * 5. Comments Endpoint:
  *    GET /videos/:id/comments
  *    Returns: { comments: Comment[] }
  *
- * 4. Post Comment Endpoint:
+ * 6. Post Comment Endpoint:
  *    POST /videos/:id/comments
  *    Header: Authorization: Bearer <token>
  *    Payload: { text: string }
  *    Returns: { comment: Comment }
  *
- * 5. Share Endpoint:
+ * 7. Share Endpoint:
  *    POST /videos/:id/share
  *    Returns: { shareCount: number }
  *
- * 6. Follow User Endpoint:
+ * 8. Follow User Endpoint:
  *    POST /users/:id/follow
  *    Header: Authorization: Bearer <token>
  *    Returns: { userId: string, isFollowing: boolean }
  *
- * 7. Publish Video Endpoint:
+ * 9. Publish Video Endpoint:
  *    POST /videos
  *    Header: Authorization: Bearer <token>
  *    Payload: CreateVideoDto
@@ -77,6 +88,27 @@ export const videosApi = {
    */
   async toggleLike(videoId: string): Promise<LikeResponse> {
     return await apiClient.post<LikeResponse>(`/videos/${videoId}/like`);
+  },
+
+  /**
+   * Toggle Save / Bookmark video to profile (Requires Auth)
+   */
+  async toggleSaveVideo(videoId: string): Promise<SaveResponse> {
+    return await apiClient.post<SaveResponse>(`/videos/${videoId}/save`);
+  },
+
+  /**
+   * Fetch saved / bookmarked videos for the authenticated user
+   */
+  async getSavedVideos(): Promise<Video[]> {
+    try {
+      const res = await apiClient.get<{ videos: Video[] } | Video[]>('/videos/saved');
+      if (Array.isArray(res)) return res;
+      return res?.videos || [];
+    } catch (err) {
+      console.warn('Failed to fetch saved videos:', err);
+      return [];
+    }
   },
 
   /**

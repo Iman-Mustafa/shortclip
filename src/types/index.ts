@@ -33,6 +33,8 @@ export interface Video {
   creator: User;
   likeCount: number;
   isLiked: boolean;
+  saveCount?: number;
+  isSaved?: boolean;
   commentCount: number;
   shareCount: number;
   downloadUrl: string;
@@ -74,6 +76,12 @@ export interface LikeResponse {
 export interface FollowResponse {
   userId: string;
   isFollowing: boolean;
+}
+
+export interface SaveResponse {
+  videoId: string;
+  isSaved: boolean;
+  saveCount: number;
 }
 
 export interface ApiResponse<T = any> {

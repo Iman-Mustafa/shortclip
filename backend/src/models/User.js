@@ -53,6 +53,12 @@ const userSchema = new mongoose.Schema(
         ref: 'User',
       },
     ],
+    savedVideos: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Video',
+      },
+    ],
   },
   {
     timestamps: true,

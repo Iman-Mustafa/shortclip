@@ -4,6 +4,7 @@ import React from 'react';
 import { Disc3, Check, Plus, BadgeCheck } from 'lucide-react';
 import { Video } from '@/types';
 import { useFeed } from '@/context/FeedContext';
+import { useAuth } from '@/context/AuthContext';
 
 interface SenderProfileProps {
   video: Video;
@@ -11,7 +12,13 @@ interface SenderProfileProps {
 
 export const SenderProfile: React.FC<SenderProfileProps> = ({ video }) => {
   const { toggleFollow } = useFeed();
+  const { user, isAuthenticated } = useAuth();
   const { creator, description, tags, soundTitle } = video;
+
+  const isSelf =
+    isAuthenticated &&
+    user &&
+    (user.id === creator.id || user.username?.toLowerCase() === creator.username?.toLowerCase());
 
   return (
     <div className="sender-content-container">
@@ -32,23 +39,28 @@ export const SenderProfile: React.FC<SenderProfileProps> = ({ video }) => {
           </div>
         </div>
 
-        <button
-          className={`follow-btn ${creator.isFollowing ? 'following' : ''}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleFollow(creator.id);
-          }}
-        >
-          {creator.isFollowing ? (
-            <>
-              <Check size={12} style={{ display: 'inline', marginRight: '4px' }} /> Following
-            </>
-          ) : (
-            <>
-              <Plus size={12} style={{ display: 'inline', marginRight: '4px' }} /> Follow
-            </>
-          )}
-        </button>
+        {!isSelf ? (
+          <button
+            className={`follow-btn ${creator.isFollowing ? 'following' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleFollow(creator.id);
+            }}
+            title={creator.isFollowing ? `Following @${creator.username}` : `Follow @${creator.username}`}
+          >
+            {creator.isFollowing ? (
+              <>
+                <Check size={13} className="follow-icon" /> Following
+              </>
+            ) : (
+              <>
+                <Plus size={13} className="follow-icon" /> Follow
+              </>
+            )}
+          </button>
+        ) : (
+          <span className="creator-you-badge">You</span>
+        )}
       </div>
 
       {/* Description & Captions */}

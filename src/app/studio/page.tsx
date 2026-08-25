@@ -9,6 +9,7 @@ import {
   Upload,
   Camera,
   Film,
+  Bookmark,
   RotateCcw,
   CheckCircle,
   AlertCircle,
@@ -20,16 +21,18 @@ import {
   Phone,
   Image as ImageIcon,
   Sparkles,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useFeed } from '@/context/FeedContext';
 
-type StudioTab = 'upload' | 'record' | 'my-clips' | 'profile';
+type StudioTab = 'upload' | 'record' | 'my-clips' | 'saved' | 'profile';
 
 export default function StudioPage() {
   const router = useRouter();
   const { user, isAuthenticated, logout, updateProfile, openAuthModal } = useAuth();
-  const { publishVideo, videos, showToast } = useFeed();
+  const { publishVideo, videos, savedVideos, toggleSave, showToast } = useFeed();
 
   const [activeTab, setActiveTab] = useState<StudioTab>('upload');
 
@@ -50,6 +53,8 @@ export default function StudioPage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileSuccessMsg, setProfileSuccessMsg] = useState<string | null>(null);
   const [profileErrorMsg, setProfileErrorMsg] = useState<string | null>(null);
@@ -393,6 +398,13 @@ export default function StudioPage() {
             <span>My Clips ({userClips.length})</span>
           </button>
           <button
+            className={`header-studio-tab ${activeTab === 'saved' ? 'active' : ''}`}
+            onClick={() => handleTabChange('saved')}
+          >
+            <Bookmark size={15} />
+            <span>Saved ({savedVideos.length})</span>
+          </button>
+          <button
             className={`header-studio-tab ${activeTab === 'profile' ? 'active' : ''}`}
             onClick={() => handleTabChange('profile')}
           >
@@ -451,14 +463,28 @@ export default function StudioPage() {
                   <span className="creator-tag">CREATOR</span>
                 </div>
                 <div className="studio-stats-pills">
-                  <span className="stat-pill">
+                  <span
+                    className="stat-pill stat-clickable"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleTabChange('my-clips');
+                    }}
+                    title="View My Clips"
+                  >
                     <strong>{userClips.length}</strong> Clips
                   </span>
-                  <span className="stat-pill">
-                    <strong>{user.followerCount || 1}</strong> Followers
+                  <span
+                    className="stat-pill stat-clickable"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleTabChange('saved');
+                    }}
+                    title="View Saved Videos"
+                  >
+                    <strong>{savedVideos.length}</strong> Saved
                   </span>
                   <span className="stat-pill">
-                    <strong>12</strong> Following
+                    <strong>{user.followerCount || 0}</strong> Followers
                   </span>
                 </div>
               </div>
@@ -754,7 +780,55 @@ export default function StudioPage() {
             </div>
           )}
 
-          {/* Tab Content 4: Edit Profile & Account Security */}
+          {/* Tab Content 4: Saved Clips Gallery */}
+          {activeTab === 'saved' && (
+            <div className="studio-form-content clips-gallery-view">
+              {savedVideos.length === 0 ? (
+                <div className="empty-clips-view">
+                  <Bookmark size={36} color="rgba(255,255,255,0.3)" />
+                  <h4>No Saved Clips Yet</h4>
+                  <p>Browse the feed and click "Save" on any video to bookmark it here!</p>
+                  <Link
+                    href="/"
+                    className="dropzone-btn"
+                    style={{ marginTop: '10px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    Explore Feed
+                  </Link>
+                </div>
+              ) : (
+                <div className="user-clips-grid">
+                  {savedVideos.map((clip) => (
+                    <div key={clip.id} className="user-clip-card saved-clip-card">
+                      <video src={clip.videoUrl} className="user-clip-thumb" />
+                      <div className="user-clip-overlay">
+                        <div className="saved-creator-tag">@{clip.creator?.username}</div>
+                        <p className="user-clip-desc">{clip.description}</p>
+                        <div className="user-clip-stats">
+                          <span>❤️ {clip.likeCount}</span>
+                          <span>💬 {clip.commentCount}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleSave(clip.id);
+                            }}
+                            className="unsave-pill-btn"
+                            title="Remove from saved"
+                          >
+                            <Bookmark size={13} fill="#ffd700" color="#ffd700" />
+                            <span>Saved</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tab Content 5: Edit Profile & Account Security */}
           {activeTab === 'profile' && (
             <form onSubmit={handleSaveProfile} className="studio-form-content studio-profile-editor">
               <div className="profile-editor-layout">
@@ -856,23 +930,45 @@ export default function StudioPage() {
                     <div className="form-group-row">
                       <div className="form-group">
                         <label>New Password</label>
-                        <input
-                          type="password"
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          placeholder="Leave blank to keep current"
-                          className="studio-input"
-                        />
+                        <div className="studio-password-input-wrap">
+                          <input
+                            type={showNewPassword ? 'text' : 'password'}
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            placeholder="Leave blank to keep current"
+                            className="studio-input"
+                          />
+                          <button
+                            type="button"
+                            className="studio-pwd-toggle"
+                            onClick={() => setShowNewPassword((prev) => !prev)}
+                            tabIndex={-1}
+                            title={showNewPassword ? 'Hide password' : 'Show password'}
+                          >
+                            {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
                       </div>
                       <div className="form-group">
                         <label>Confirm Password</label>
-                        <input
-                          type="password"
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          placeholder="Confirm new password"
-                          className="studio-input"
-                        />
+                        <div className="studio-password-input-wrap">
+                          <input
+                            type={showConfirmPassword ? 'text' : 'password'}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            placeholder="Confirm new password"
+                            className="studio-input"
+                          />
+                          <button
+                            type="button"
+                            className="studio-pwd-toggle"
+                            onClick={() => setShowConfirmPassword((prev) => !prev)}
+                            tabIndex={-1}
+                            title={showConfirmPassword ? 'Hide password' : 'Show password'}
+                          >
+                            {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

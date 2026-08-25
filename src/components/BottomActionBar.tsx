@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Heart, MessageCircle, Share2, Download, Pencil } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, Pencil } from 'lucide-react';
 import { Video } from '@/types';
 import { useFeed } from '@/context/FeedContext';
 import { useAuth } from '@/context/AuthContext';
@@ -21,49 +21,8 @@ function formatCount(num: number): string {
 }
 
 export const BottomActionBar: React.FC<BottomActionBarProps> = ({ video }) => {
-  const { toggleLike, openComments, openShare, showToast, openEditModal } = useFeed();
+  const { toggleLike, toggleSave, openComments, openShare, openEditModal } = useFeed();
   const { isAuthenticated, user } = useAuth();
-
-  const handleDownload = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const downloadUrl = video.downloadUrl || video.videoUrl;
-
-    if (!downloadUrl) {
-      showToast('Download URL not available');
-      return;
-    }
-
-    showToast('Preparing download...');
-    try {
-      // Fetch as blob to force download for cross-origin URLs
-      const response = await fetch(downloadUrl);
-      if (!response.ok) throw new Error('Network response was not ok');
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-
-      const anchor = document.createElement('a');
-      anchor.href = blobUrl;
-      anchor.download = `shortclip_${video.id}.mp4`;
-      document.body.appendChild(anchor);
-      anchor.click();
-      document.body.removeChild(anchor);
-      window.URL.revokeObjectURL(blobUrl);
-
-      showToast('Download started!');
-    } catch (error) {
-      console.error('Download failed:', error);
-      // Fallback to old behavior if CORS blocks the fetch
-      const anchor = document.createElement('a');
-      anchor.href = downloadUrl;
-      anchor.download = `shortclip_${video.id}.mp4`;
-      anchor.target = '_blank';
-      anchor.rel = 'noopener noreferrer';
-      document.body.appendChild(anchor);
-      anchor.click();
-      document.body.removeChild(anchor);
-      showToast('Opened in new tab to save');
-    }
-  };
 
   return (
     <div className="bottom-action-bar">
@@ -111,15 +70,22 @@ export const BottomActionBar: React.FC<BottomActionBarProps> = ({ video }) => {
         <span className="action-btn-label">{formatCount(video.shareCount)}</span>
       </button>
 
-      {/* Download Button */}
+      {/* Save / Bookmark to Profile Button */}
       <button
-        className="action-btn-item download-btn"
-        onClick={handleDownload}
-        title="Download Video"
-        aria-label="Download"
+        className={`action-btn-item save-btn ${video.isSaved ? 'saved-active' : ''}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          toggleSave(video.id);
+        }}
+        title={video.isSaved ? 'Saved to your profile' : 'Save to Profile'}
+        aria-label="Save"
       >
-        <Download className="action-btn-icon" />
-        <span className="action-btn-label">Save</span>
+        <Bookmark
+          className={`action-btn-icon ${video.isSaved ? 'saved-bookmark' : ''}`}
+        />
+        <span className="action-btn-label">
+          {video.saveCount && video.saveCount > 0 ? formatCount(video.saveCount) : 'Save'}
+        </span>
       </button>
 
       {/* Edit Button (Only if owner) */}

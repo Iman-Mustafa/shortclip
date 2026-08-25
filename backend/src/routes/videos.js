@@ -6,6 +6,8 @@ const {
   getFeed,
   createVideo,
   toggleLike,
+  toggleSave,
+  getSavedVideos,
   getComments,
   postComment,
   shareVideo,
@@ -15,11 +17,17 @@ const {
 // GET /api/videos — public feed with optional auth for isLiked enrichment
 router.get('/', optionalAuth, getFeed);
 
+// GET /api/videos/saved — get saved videos for current user
+router.get('/saved', requireAuth, getSavedVideos);
+
 // POST /api/videos — create/publish video (with optional file upload)
 router.post('/', requireAuth, uploadVideo.single('video'), createVideo);
 
 // POST /api/videos/:id/like — toggle like
 router.post('/:id/like', requireAuth, toggleLike);
+
+// POST /api/videos/:id/save — toggle save/bookmark
+router.post('/:id/save', requireAuth, toggleSave);
 
 // GET /api/videos/:id/comments — get comments
 router.get('/:id/comments', getComments);

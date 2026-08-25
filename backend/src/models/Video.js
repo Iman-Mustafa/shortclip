@@ -44,6 +44,12 @@ const videoSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    saves: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
   },
   {
     timestamps: true,
@@ -55,6 +61,11 @@ const videoSchema = new mongoose.Schema(
 // Virtual: like count
 videoSchema.virtual('likeCount').get(function () {
   return this.likes ? this.likes.length : 0;
+});
+
+// Virtual: save count
+videoSchema.virtual('saveCount').get(function () {
+  return this.saves ? this.saves.length : 0;
 });
 
 // Virtual: comment count (populated separately)
@@ -78,6 +89,10 @@ videoSchema.methods.toFeedJSON = function (creatorData, requestingUserId, commen
     likeCount: this.likes ? this.likes.length : 0,
     isLiked: requestingUserId
       ? this.likes.some((uid) => uid.toString() === requestingUserId.toString())
+      : false,
+    saveCount: this.saves ? this.saves.length : 0,
+    isSaved: requestingUserId
+      ? (this.saves || []).some((uid) => uid.toString() === requestingUserId.toString())
       : false,
     commentCount: commentCount,
     shareCount: this.shareCount || 0,
