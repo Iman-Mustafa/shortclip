@@ -77,3 +77,12 @@ export interface PaginatedVideosResponse {
   nextCursor?: string | null;
   hasMore: boolean;
 }
+
+export interface CreateVideoDto {
+  videoUrl: string;
+  description: string;
+  soundTitle?: string;
+  tags?: string[];
+  thumbnailUrl?: string;
+}
+

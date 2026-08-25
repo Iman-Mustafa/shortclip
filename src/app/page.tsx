@@ -1,18 +1,19 @@
 'use client';
 
 import React from 'react';
-import { Clapperboard, Flame, LogIn, LogOut, User as UserIcon } from 'lucide-react';
+import { Clapperboard, Flame, LogIn, LogOut, Plus, Video as VideoIcon } from 'lucide-react';
 import { FeedContainer } from '@/components/FeedContainer';
 import { AuthModal } from '@/components/AuthModal';
 import { CommentsDrawer } from '@/components/CommentsDrawer';
 import { ShareModal } from '@/components/ShareModal';
 import { ZoomModal } from '@/components/ZoomModal';
+import { ProfileStudioModal } from '@/components/ProfileStudioModal';
 import { useAuth } from '@/context/AuthContext';
 import { useFeed } from '@/context/FeedContext';
 
 export default function HomePage() {
   const { user, isAuthenticated, logout, openAuthModal } = useAuth();
-  const { toastMessage } = useFeed();
+  const { toastMessage, openProfileStudio } = useFeed();
 
   return (
     <main className="app-container">
@@ -35,27 +36,40 @@ export default function HomePage() {
         {/* User Account / Auth Trigger placed on the right */}
         <div className="desktop-auth-nav">
           {isAuthenticated && user ? (
-            <div className="user-profile-badge">
-              <img
-                src={user.avatarUrl || 'https://api.dicebear.com/7.x/bottts/svg?seed=user'}
-                alt={user.username}
-                style={{ width: '28px', height: '28px', borderRadius: '50%' }}
-              />
-              <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>@{user.username}</span>
+            <div className="user-nav-group">
+              {/* Quick Post / Studio Button */}
               <button
-                onClick={() => logout()}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-                title="Log Out"
+                onClick={() => openProfileStudio()}
+                className="header-create-btn"
+                title="Post or Record Video"
               >
-                <LogOut size={16} />
+                <Plus size={16} />
+                <span>Create</span>
               </button>
+
+              {/* User Profile Avatar Trigger */}
+              <div
+                className="user-profile-badge interactive"
+                onClick={() => openProfileStudio()}
+                title="Open Profile & Creator Studio"
+              >
+                <img
+                  src={user.avatarUrl || 'https://api.dicebear.com/7.x/bottts/svg?seed=user'}
+                  alt={user.username}
+                  className="user-badge-avatar"
+                />
+                <span className="user-badge-name">@{user.username}</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    logout();
+                  }}
+                  className="user-badge-logout"
+                  title="Log Out"
+                >
+                  <LogOut size={15} />
+                </button>
+              </div>
             </div>
           ) : (
             <button
@@ -74,6 +88,7 @@ export default function HomePage() {
 
       {/* Overlays & Drawers */}
       <AuthModal />
+      <ProfileStudioModal />
       <CommentsDrawer />
       <ShareModal />
       <ZoomModal />

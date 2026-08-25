@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { Video, Comment, LikeResponse, PaginatedVideosResponse, FollowResponse } from '@/types';
+import { Video, Comment, LikeResponse, PaginatedVideosResponse, FollowResponse, CreateVideoDto } from '@/types';
 import { INITIAL_VIDEOS, MOCK_COMMENTS } from './mockData';
 
 /**
@@ -188,6 +188,55 @@ export const videosApi = {
         userId,
         isFollowing: updated?.creator.isFollowing ?? true,
       };
+    }
+  },
+
+  /**
+   * Create and publish a new video clip (Requires Auth)
+   */
+  async createVideo(dto: CreateVideoDto): Promise<Video> {
+    try {
+      return await apiClient.post<Video>('/videos', dto);
+    } catch (err) {
+      if (!USE_FALLBACK) throw err;
+
+      let currentUser = {
+        id: 'usr_me',
+        username: 'creator_user',
+        name: 'Creator User',
+        avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=creator',
+        followerCount: 1,
+        isFollowing: false,
+      };
+
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('shortclip_auth');
+        if (stored) {
+          try {
+            currentUser = JSON.parse(stored).user;
+          } catch {}
+        }
+      }
+
+      const newVideo: Video = {
+        id: `vid_${Date.now()}`,
+        videoUrl: dto.videoUrl,
+        thumbnailUrl: dto.thumbnailUrl || dto.videoUrl,
+        description: dto.description || 'New ShortClip creation 🔥',
+        tags: dto.tags && dto.tags.length > 0 ? dto.tags : ['shortclip', 'creator'],
+        soundTitle: dto.soundTitle || 'Original Audio',
+        creator: currentUser,
+        likeCount: 0,
+        isLiked: false,
+        commentCount: 0,
+        shareCount: 0,
+        downloadUrl: dto.videoUrl,
+        createdAt: 'Just now',
+      };
+
+      // Add to front of runtime feed
+      runtimeVideos.unshift(newVideo);
+      return newVideo;
     }
   },
 };

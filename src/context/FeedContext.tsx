@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Video, Comment } from '@/types';
+import { Video, Comment, CreateVideoDto } from '@/types';
 import { videosApi } from '@/lib/api/videos';
 import { useAuth } from './AuthContext';
 
@@ -25,6 +25,10 @@ interface FeedContextType {
   zoomedVideo: Video | null;
   openZoom: (video: Video) => void;
   closeZoom: () => void;
+  isProfileStudioOpen: boolean;
+  openProfileStudio: () => void;
+  closeProfileStudio: () => void;
+  publishVideo: (dto: CreateVideoDto) => Promise<Video>;
   toastMessage: string | null;
   showToast: (msg: string) => void;
 }
@@ -42,6 +46,7 @@ export const FeedProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [activeCommentVideo, setActiveCommentVideo] = useState<Video | null>(null);
   const [activeShareVideo, setActiveShareVideo] = useState<Video | null>(null);
   const [zoomedVideo, setZoomedVideo] = useState<Video | null>(null);
+  const [isProfileStudioOpen, setIsProfileStudioOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = useCallback((msg: string) => {
@@ -50,6 +55,31 @@ export const FeedProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setToastMessage((current) => (current === msg ? null : current));
     }, 2500);
   }, []);
+
+  const openProfileStudio = useCallback(() => {
+    setIsProfileStudioOpen(true);
+  }, []);
+
+  const closeProfileStudio = useCallback(() => {
+    setIsProfileStudioOpen(false);
+  }, []);
+
+  const publishVideo = useCallback(
+    async (dto: CreateVideoDto): Promise<Video> => {
+      try {
+        const created = await videosApi.createVideo(dto);
+        setVideos((prev) => [created, ...prev]);
+        setActiveVideoIndex(0);
+        setIsProfileStudioOpen(false);
+        showToast('🎉 Your video was published to the feed!');
+        return created;
+      } catch (err: any) {
+        showToast(err?.message || 'Failed to publish video');
+        throw err;
+      }
+    },
+    [showToast]
+  );
 
   const loadFeed = useCallback(async () => {
     try {
@@ -200,6 +230,10 @@ export const FeedProvider: React.FC<{ children: React.ReactNode }> = ({ children
         zoomedVideo,
         openZoom,
         closeZoom,
+        isProfileStudioOpen,
+        openProfileStudio,
+        closeProfileStudio,
+        publishVideo,
         toastMessage,
         showToast,
       }}
