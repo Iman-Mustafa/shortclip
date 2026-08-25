@@ -322,327 +322,327 @@ export default function StudioPage() {
         </div>
       </header>
 
-      {/* Main Studio Workspace Container */}
+      {/* Main Studio Workspace Container (Fixed 100vh layout) */}
       <main className="studio-workspace">
-        {/* User Summary Card */}
-        <div className="studio-profile-bar">
-          <div className="studio-user-card">
-            <img
-              src={user.avatarUrl || 'https://api.dicebear.com/7.x/bottts/svg?seed=user'}
-              alt={user.username}
-              className="studio-avatar-img"
-            />
-            <div className="studio-user-details">
-              <div className="studio-username-row">
-                <h3>@{user.username}</h3>
-                <BadgeCheck size={18} className="verified-badge" />
-                <span className="creator-tag">CREATOR</span>
-              </div>
-              <p className="studio-user-bio">{user.bio || 'ShortClip Creator Studio'}</p>
-              
-              <div className="studio-stats-pills">
-                <span className="stat-pill">
-                  <strong>{userClips.length}</strong> Clips
-                </span>
-                <span className="stat-pill">
-                  <strong>{user.followerCount || 1}</strong> Followers
-                </span>
-                <span className="stat-pill">
-                  <strong>12</strong> Following
-                </span>
+        <div className="studio-unified-card">
+          {/* Compact User Summary Header Strip */}
+          <div className="studio-profile-strip">
+            <div className="studio-user-card">
+              <img
+                src={user.avatarUrl || 'https://api.dicebear.com/7.x/bottts/svg?seed=user'}
+                alt={user.username}
+                className="studio-avatar-img"
+              />
+              <div className="studio-user-details">
+                <div className="studio-username-row">
+                  <h3>@{user.username}</h3>
+                  <BadgeCheck size={16} className="verified-badge" />
+                  <span className="creator-tag">CREATOR</span>
+                </div>
+                <div className="studio-stats-pills">
+                  <span className="stat-pill">
+                    <strong>{userClips.length}</strong> Clips
+                  </span>
+                  <span className="stat-pill">
+                    <strong>{user.followerCount || 1}</strong> Followers
+                  </span>
+                  <span className="stat-pill">
+                    <strong>12</strong> Following
+                  </span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Tab Content 1: Upload Video */}
-        {activeTab === 'upload' && (
-          <form onSubmit={handlePublish} className="studio-card-container">
-            <div className="studio-content-layout">
-              {/* Left: Video Dropzone / Preview */}
-              <div className="studio-preview-col">
-                {videoPreviewUrl ? (
-                  <div className="studio-video-preview-wrapper">
-                    <video
-                      src={videoPreviewUrl}
-                      controls
-                      autoPlay
-                      loop
-                      className="studio-preview-player"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setVideoFile(null);
-                        setVideoPreviewUrl(null);
-                      }}
-                      className="change-video-btn"
-                    >
-                      <RotateCcw size={14} /> Change Video
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    className="studio-dropzone"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="video/mp4,video/webm,video/quicktime"
-                      onChange={handleFileChange}
-                      style={{ display: 'none' }}
-                    />
-                    <div className="dropzone-icon-circle">
-                      <Upload size={28} color="#ff2d55" />
+          {/* Tab Content 1: Upload Video */}
+          {activeTab === 'upload' && (
+            <form onSubmit={handlePublish} className="studio-form-content">
+              <div className="studio-content-layout">
+                {/* Left: Video Dropzone / Preview */}
+                <div className="studio-preview-col">
+                  {videoPreviewUrl ? (
+                    <div className="studio-video-preview-wrapper">
+                      <video
+                        src={videoPreviewUrl}
+                        controls
+                        autoPlay
+                        loop
+                        className="studio-preview-player"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setVideoFile(null);
+                          setVideoPreviewUrl(null);
+                        }}
+                        className="change-video-btn"
+                      >
+                        <RotateCcw size={14} /> Change Video
+                      </button>
                     </div>
-                    <h4>Select Video to Post</h4>
-                    <p>MP4, WebM or MOV (9:16 vertical recommended)</p>
-                    <span className="dropzone-btn">Browse Files</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Right: Metadata Form */}
-              <div className="studio-meta-col">
-                <div className="form-group">
-                  <label>Caption & Description</label>
-                  <textarea
-                    rows={4}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Tell your viewers what this clip is about..."
-                    className="studio-input studio-textarea"
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Audio Track Name</label>
-                  <input
-                    type="text"
-                    value={soundTitle}
-                    onChange={(e) => setSoundTitle(e.target.value)}
-                    placeholder="Original Sound - @username"
-                    className="studio-input"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Hashtags & Tags (comma separated)</label>
-                  <input
-                    type="text"
-                    value={tagsInput}
-                    onChange={(e) => setTagsInput(e.target.value)}
-                    placeholder="fyp, trending, shortclip"
-                    className="studio-input"
-                  />
-                </div>
-
-                {errorMsg && (
-                  <div className="studio-error-banner">
-                    <AlertCircle size={16} />
-                    <span>{errorMsg}</span>
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={!videoPreviewUrl || isSubmitting}
-                  className="studio-publish-btn"
-                >
-                  {isSubmitting ? (
-                    <span>Publishing clip...</span>
                   ) : (
-                    <>
-                      <CheckCircle size={18} />
-                      <span>Publish Video to Feed</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </form>
-        )}
-
-        {/* Tab Content 2: Live Camera Recording */}
-        {activeTab === 'record' && (
-          <form onSubmit={handlePublish} className="studio-card-container">
-            <div className="studio-content-layout">
-              {/* Left: Viewfinder / Review */}
-              <div className="studio-preview-col">
-                {videoPreviewUrl ? (
-                  <div className="studio-video-preview-wrapper">
-                    <video
-                      src={videoPreviewUrl}
-                      controls
-                      autoPlay
-                      loop
-                      className="studio-preview-player"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleRetake}
-                      className="change-video-btn"
+                    <div
+                      className="studio-dropzone"
+                      onClick={() => fileInputRef.current?.click()}
                     >
-                      <RotateCcw size={14} /> Retake Video
-                    </button>
-                  </div>
-                ) : (
-                  <div className="studio-camera-viewfinder">
-                    <video
-                      ref={liveVideoRef}
-                      autoPlay
-                      playsInline
-                      muted
-                      className="camera-stream-video"
-                    />
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="video/mp4,video/webm,video/quicktime"
+                        onChange={handleFileChange}
+                        style={{ display: 'none' }}
+                      />
+                      <div className="dropzone-icon-circle">
+                        <Upload size={26} color="#ff2d55" />
+                      </div>
+                      <h4>Select Video to Post</h4>
+                      <p>MP4, WebM or MOV (9:16 vertical recommended)</p>
+                      <span className="dropzone-btn">Browse Files</span>
+                    </div>
+                  )}
+                </div>
 
-                    <div className="camera-overlay-controls">
-                      {isRecording && (
-                        <div className="recording-badge-pill">
-                          <span className="record-red-dot" />
-                          <span>00:{recordingTime.toString().padStart(2, '0')} / 01:00</span>
+                {/* Right: Metadata Form */}
+                <div className="studio-meta-col">
+                  <div className="form-group">
+                    <label>Caption & Description</label>
+                    <textarea
+                      rows={3}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Tell your viewers what this clip is about..."
+                      className="studio-input studio-textarea"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Audio Track Name</label>
+                    <input
+                      type="text"
+                      value={soundTitle}
+                      onChange={(e) => setSoundTitle(e.target.value)}
+                      placeholder="Original Sound - @username"
+                      className="studio-input"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Hashtags & Tags (comma separated)</label>
+                    <input
+                      type="text"
+                      value={tagsInput}
+                      onChange={(e) => setTagsInput(e.target.value)}
+                      placeholder="fyp, trending, shortclip"
+                      className="studio-input"
+                    />
+                  </div>
+
+                  {errorMsg && (
+                    <div className="studio-error-banner">
+                      <AlertCircle size={16} />
+                      <span>{errorMsg}</span>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={!videoPreviewUrl || isSubmitting}
+                    className="studio-publish-btn"
+                  >
+                    {isSubmitting ? (
+                      <span>Publishing clip...</span>
+                    ) : (
+                      <>
+                        <CheckCircle size={18} />
+                        <span>Publish Video to Feed</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </form>
+          )}
+
+          {/* Tab Content 2: Live Camera Recording */}
+          {activeTab === 'record' && (
+            <form onSubmit={handlePublish} className="studio-form-content">
+              <div className="studio-content-layout">
+                {/* Left: Viewfinder / Review */}
+                <div className="studio-preview-col">
+                  {videoPreviewUrl ? (
+                    <div className="studio-video-preview-wrapper">
+                      <video
+                        src={videoPreviewUrl}
+                        controls
+                        autoPlay
+                        loop
+                        className="studio-preview-player"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRetake}
+                        className="change-video-btn"
+                      >
+                        <RotateCcw size={14} /> Retake Video
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="studio-camera-viewfinder">
+                      <video
+                        ref={liveVideoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        className="camera-stream-video"
+                      />
+
+                      <div className="camera-overlay-controls">
+                        {isRecording && (
+                          <div className="recording-badge-pill">
+                            <span className="record-red-dot" />
+                            <span>00:{recordingTime.toString().padStart(2, '0')} / 01:00</span>
+                          </div>
+                        )}
+
+                        {!isRecording ? (
+                          <button
+                            type="button"
+                            onClick={startRecording}
+                            disabled={!mediaStream}
+                            className="start-record-btn"
+                            title="Start Recording"
+                          >
+                            <div className="record-inner-circle" />
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={stopRecording}
+                            className="stop-record-btn"
+                            title="Stop Recording"
+                          >
+                            <div className="stop-inner-square" />
+                          </button>
+                        )}
+                      </div>
+
+                      {cameraError && (
+                        <div className="camera-error-overlay">
+                          <AlertCircle size={24} color="#ff2d55" />
+                          <p>{cameraError}</p>
+                          <button
+                            type="button"
+                            onClick={startCamera}
+                            className="dropzone-btn"
+                            style={{ marginTop: '8px' }}
+                          >
+                            Retry Camera
+                          </button>
                         </div>
                       )}
-
-                      {!isRecording ? (
-                        <button
-                          type="button"
-                          onClick={startRecording}
-                          disabled={!mediaStream}
-                          className="start-record-btn"
-                          title="Start Recording"
-                        >
-                          <div className="record-inner-circle" />
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={stopRecording}
-                          className="stop-record-btn"
-                          title="Stop Recording"
-                        >
-                          <div className="stop-inner-square" />
-                        </button>
-                      )}
                     </div>
-
-                    {cameraError && (
-                      <div className="camera-error-overlay">
-                        <AlertCircle size={24} color="#ff2d55" />
-                        <p>{cameraError}</p>
-                        <button
-                          type="button"
-                          onClick={startCamera}
-                          className="dropzone-btn"
-                          style={{ marginTop: '8px' }}
-                        >
-                          Retry Camera
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Right: Metadata Form */}
-              <div className="studio-meta-col">
-                <div className="form-group">
-                  <label>Caption & Description</label>
-                  <textarea
-                    rows={4}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Recorded live on ShortClip! Add details..."
-                    className="studio-input studio-textarea"
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Audio Track Name</label>
-                  <input
-                    type="text"
-                    value={soundTitle}
-                    onChange={(e) => setSoundTitle(e.target.value)}
-                    placeholder="Live Camera Audio"
-                    className="studio-input"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Hashtags & Tags</label>
-                  <input
-                    type="text"
-                    value={tagsInput}
-                    onChange={(e) => setTagsInput(e.target.value)}
-                    placeholder="fyp, camera, real"
-                    className="studio-input"
-                  />
-                </div>
-
-                {errorMsg && (
-                  <div className="studio-error-banner">
-                    <AlertCircle size={16} />
-                    <span>{errorMsg}</span>
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={!videoPreviewUrl || isSubmitting}
-                  className="studio-publish-btn"
-                >
-                  {isSubmitting ? (
-                    <span>Publishing clip...</span>
-                  ) : (
-                    <>
-                      <CheckCircle size={18} />
-                      <span>Publish Recorded Clip</span>
-                    </>
                   )}
-                </button>
-              </div>
-            </div>
-          </form>
-        )}
+                </div>
 
-        {/* Tab Content 3: My Clips Gallery */}
-        {activeTab === 'my-clips' && (
-          <div className="studio-card-container">
-            {userClips.length === 0 ? (
-              <div className="empty-clips-view">
-                <VideoIcon size={40} color="rgba(255,255,255,0.3)" />
-                <h4>No Clips Published Yet</h4>
-                <p>Use the Upload or Record tabs above to share your first video!</p>
-                <button
-                  type="button"
-                  onClick={() => handleTabChange('upload')}
-                  className="dropzone-btn"
-                  style={{ marginTop: '12px' }}
-                >
-                  Create First Clip
-                </button>
+                {/* Right: Metadata Form */}
+                <div className="studio-meta-col">
+                  <div className="form-group">
+                    <label>Caption & Description</label>
+                    <textarea
+                      rows={3}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Recorded live on ShortClip! Add details..."
+                      className="studio-input studio-textarea"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Audio Track Name</label>
+                    <input
+                      type="text"
+                      value={soundTitle}
+                      onChange={(e) => setSoundTitle(e.target.value)}
+                      placeholder="Live Camera Audio"
+                      className="studio-input"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Hashtags & Tags</label>
+                    <input
+                      type="text"
+                      value={tagsInput}
+                      onChange={(e) => setTagsInput(e.target.value)}
+                      placeholder="fyp, camera, real"
+                      className="studio-input"
+                    />
+                  </div>
+
+                  {errorMsg && (
+                    <div className="studio-error-banner">
+                      <AlertCircle size={16} />
+                      <span>{errorMsg}</span>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={!videoPreviewUrl || isSubmitting}
+                    className="studio-publish-btn"
+                  >
+                    {isSubmitting ? (
+                      <span>Publishing clip...</span>
+                    ) : (
+                      <>
+                        <CheckCircle size={18} />
+                        <span>Publish Recorded Clip</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
-            ) : (
-              <div className="user-clips-grid">
-                {userClips.map((clip) => (
-                  <div key={clip.id} className="user-clip-card">
-                    <video src={clip.videoUrl} className="user-clip-thumb" />
-                    <div className="user-clip-overlay">
-                      <p className="user-clip-desc">{clip.description}</p>
-                      <div className="user-clip-stats">
-                        <span>❤️ {clip.likeCount}</span>
-                        <span>💬 {clip.commentCount}</span>
+            </form>
+          )}
+
+          {/* Tab Content 3: My Clips Gallery */}
+          {activeTab === 'my-clips' && (
+            <div className="studio-form-content clips-gallery-view">
+              {userClips.length === 0 ? (
+                <div className="empty-clips-view">
+                  <VideoIcon size={36} color="rgba(255,255,255,0.3)" />
+                  <h4>No Clips Published Yet</h4>
+                  <p>Use the Upload or Record tabs above to share your first video!</p>
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange('upload')}
+                    className="dropzone-btn"
+                    style={{ marginTop: '10px' }}
+                  >
+                    Create First Clip
+                  </button>
+                </div>
+              ) : (
+                <div className="user-clips-grid">
+                  {userClips.map((clip) => (
+                    <div key={clip.id} className="user-clip-card">
+                      <video src={clip.videoUrl} className="user-clip-thumb" />
+                      <div className="user-clip-overlay">
+                        <p className="user-clip-desc">{clip.description}</p>
+                        <div className="user-clip-stats">
+                          <span>❤️ {clip.likeCount}</span>
+                          <span>💬 {clip.commentCount}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );

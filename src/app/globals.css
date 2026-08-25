@@ -1098,20 +1098,19 @@ html, body {
 }
 
 /* =========================================
-   Standalone Creator Studio Page
+   Standalone Creator Studio Page (Fixed 100vh)
    ========================================= */
 
 .studio-standalone-page {
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   width: 100vw;
   background: radial-gradient(circle at 50% 20%, #1a102f 0%, #0c0d14 60%, #050608 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
   color: #ffffff;
 }
 
@@ -1123,8 +1122,9 @@ html, body {
   gap: 20px;
   width: 100%;
   max-width: 1400px;
-  padding: 12px 28px;
+  padding: 10px 28px;
   z-index: 40;
+  flex-shrink: 0;
 }
 
 .header-studio-tabs {
@@ -1190,56 +1190,72 @@ html, body {
   transform: translateX(-2px);
 }
 
+/* Main Studio Workspace */
 .studio-workspace {
+  flex: 1;
   width: 100%;
-  max-width: 980px;
-  padding: 16px 24px 60px;
+  max-width: 1100px;
+  padding: 4px 24px 18px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  min-height: 0;
   z-index: 10;
 }
 
-/* User Summary Bar */
-.studio-profile-bar {
-  background: rgba(18, 20, 32, 0.7);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+/* Unified Card Container (Fixed full height) */
+.studio-unified-card {
+  flex: 1;
+  background: rgba(18, 20, 32, 0.75);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 24px;
-  padding: 24px 28px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.6);
+  min-height: 0;
+}
+
+/* Compact User Profile Strip */
+.studio-profile-strip {
+  padding: 12px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+  flex-shrink: 0;
 }
 
 .studio-user-card {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
 }
 
 .studio-avatar-img {
-  width: 68px;
-  height: 68px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  border: 3px solid #ff2d55;
-  box-shadow: 0 0 24px rgba(255, 45, 85, 0.4);
+  border: 2px solid #ff2d55;
+  box-shadow: 0 0 16px rgba(255, 45, 85, 0.4);
   object-fit: cover;
 }
 
 .studio-user-details {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
 }
 
 .studio-username-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .studio-username-row h3 {
-  font-size: 1.4rem;
+  font-size: 1.15rem;
   font-weight: 800;
   font-family: 'Outfit', sans-serif;
   letter-spacing: -0.3px;
@@ -1250,33 +1266,27 @@ html, body {
 }
 
 .creator-tag {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 800;
   letter-spacing: 0.8px;
-  padding: 3px 10px;
-  border-radius: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
   background: linear-gradient(135deg, rgba(255, 45, 85, 0.3) 0%, rgba(155, 81, 224, 0.3) 100%);
   border: 1px solid rgba(255, 45, 85, 0.5);
   color: #ff4d6d;
 }
 
-.studio-user-bio {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-}
-
 .studio-stats-pills {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 4px;
+  gap: 10px;
 }
 
 .stat-pill {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   background: rgba(255, 255, 255, 0.06);
-  padding: 4px 12px;
-  border-radius: 14px;
+  padding: 3px 10px;
+  border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: var(--text-secondary);
 }
@@ -1285,22 +1295,23 @@ html, body {
   color: #ffffff;
 }
 
-/* Main Studio Card */
-.studio-card-container {
-  background: rgba(18, 20, 32, 0.7);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 24px;
-  padding: 32px;
-  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5);
+/* Studio Form Body */
+.studio-form-content {
+  flex: 1;
+  padding: 20px 28px;
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .studio-content-layout {
+  flex: 1;
   display: grid;
-  grid-template-columns: 1fr 1.3fr;
-  gap: 36px;
-  align-items: start;
+  grid-template-columns: 280px 1fr;
+  gap: 28px;
+  align-items: center;
+  min-height: 0;
 }
 
 /* Left Column: Dropzone & Viewfinder */
@@ -1310,15 +1321,17 @@ html, body {
 
 .studio-dropzone {
   width: 100%;
-  aspect-ratio: 9 / 14;
+  max-width: 280px;
+  aspect-ratio: 9 / 13;
+  max-height: 380px;
   border: 2px dashed rgba(255, 255, 255, 0.2);
-  border-radius: 22px;
+  border-radius: 20px;
   background: rgba(255, 255, 255, 0.02);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 32px 24px;
+  padding: 20px 16px;
   text-align: center;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1330,35 +1343,35 @@ html, body {
 }
 
 .dropzone-icon-circle {
-  width: 64px;
-  height: 64px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background: rgba(255, 45, 85, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .studio-dropzone h4 {
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 700;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .studio-dropzone p {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .dropzone-btn {
   background: linear-gradient(135deg, #ff2d55 0%, #d81b60 100%);
   border: none;
   color: #fff;
-  padding: 10px 22px;
-  border-radius: 18px;
-  font-size: 0.88rem;
+  padding: 8px 18px;
+  border-radius: 16px;
+  font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.2s ease;
