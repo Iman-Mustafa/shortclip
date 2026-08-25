@@ -100,6 +100,14 @@ class ApiClient {
     });
   }
 
+  public patch<T = any>(endpoint: string, body?: any, headers?: HeadersInit) {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
+      body: body ? JSON.stringify(body) : undefined,
+      headers,
+    });
+  }
+
   public delete<T = any>(endpoint: string, headers?: HeadersInit) {
     return this.request<T>(endpoint, { method: 'DELETE', headers });
   }

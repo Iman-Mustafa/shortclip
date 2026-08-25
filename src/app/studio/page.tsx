@@ -15,15 +15,20 @@ import {
   Video as VideoIcon,
   LogOut,
   BadgeCheck,
+  UserCog,
+  KeyRound,
+  Phone,
+  Image as ImageIcon,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useFeed } from '@/context/FeedContext';
 
-type StudioTab = 'upload' | 'record' | 'my-clips';
+type StudioTab = 'upload' | 'record' | 'my-clips' | 'profile';
 
 export default function StudioPage() {
   const router = useRouter();
-  const { user, isAuthenticated, logout, openAuthModal } = useAuth();
+  const { user, isAuthenticated, logout, updateProfile, openAuthModal } = useAuth();
   const { publishVideo, videos, showToast } = useFeed();
 
   const [activeTab, setActiveTab] = useState<StudioTab>('upload');
@@ -37,6 +42,28 @@ export default function StudioPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Profile Edit State
+  const [editName, setEditName] = useState(user?.name || user?.username || '');
+  const [editBio, setEditBio] = useState(user?.bio || '');
+  const [editPhone, setEditPhone] = useState(user?.phoneNumber || '');
+  const [editAvatarUrl, setEditAvatarUrl] = useState(user?.avatarUrl || '');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileSuccessMsg, setProfileSuccessMsg] = useState<string | null>(null);
+  const [profileErrorMsg, setProfileErrorMsg] = useState<string | null>(null);
+
+  // Sync profile edit state when user changes
+  useEffect(() => {
+    if (user) {
+      setEditName(user.name || user.username || '');
+      setEditBio(user.bio || '');
+      setEditPhone(user.phoneNumber || '');
+      setEditAvatarUrl(user.avatarUrl || '');
+    }
+  }, [user]);
+
   // Camera Recording State
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -45,6 +72,7 @@ export default function StudioPage() {
   const [cameraError, setCameraError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const liveVideoRef = useRef<HTMLVideoElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
@@ -221,6 +249,73 @@ export default function StudioPage() {
     }
   };
 
+  // Avatar File Picker
+  const handleAvatarFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        setProfileErrorMsg('Please select a valid image file (PNG, JPG, SVG, WebP).');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          setEditAvatarUrl(reader.result);
+          setProfileErrorMsg(null);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const AVATAR_PRESETS = [
+    `https://api.dicebear.com/7.x/bottts/svg?seed=${user?.username || '1'}`,
+    `https://api.dicebear.com/7.x/adventurer/svg?seed=${user?.username || '2'}`,
+    `https://api.dicebear.com/7.x/lorelei/svg?seed=${user?.username || '3'}`,
+    `https://api.dicebear.com/7.x/fun-emoji/svg?seed=${user?.username || '4'}`,
+    `https://api.dicebear.com/7.x/micah/svg?seed=${user?.username || '5'}`,
+    `https://api.dicebear.com/7.x/shapes/svg?seed=${user?.username || '6'}`,
+  ];
+
+  // Save Profile & Password Changes
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileErrorMsg(null);
+    setProfileSuccessMsg(null);
+
+    if (newPassword && newPassword !== confirmPassword) {
+      setProfileErrorMsg('New password and confirmation do not match.');
+      return;
+    }
+
+    if (newPassword && newPassword.length < 6) {
+      setProfileErrorMsg('New password must be at least 6 characters.');
+      return;
+    }
+
+    try {
+      setIsSavingProfile(true);
+      await updateProfile({
+        name: editName.trim() || user?.username,
+        bio: editBio.trim(),
+        phoneNumber: editPhone.trim(),
+        avatarUrl: editAvatarUrl || user?.avatarUrl,
+        currentPassword: currentPassword || undefined,
+        newPassword: newPassword || undefined,
+      });
+
+      setProfileSuccessMsg('Profile and account details updated successfully! 🎉');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      showToast('Profile updated!');
+    } catch (err: any) {
+      setProfileErrorMsg(err?.message || 'Failed to update profile.');
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
   if (!isAuthenticated || !user) {
     return (
       <div className="studio-standalone-page">
@@ -292,6 +387,13 @@ export default function StudioPage() {
             <Film size={15} />
             <span>My Clips ({userClips.length})</span>
           </button>
+          <button
+            className={`header-studio-tab ${activeTab === 'profile' ? 'active' : ''}`}
+            onClick={() => handleTabChange('profile')}
+          >
+            <UserCog size={15} />
+            <span>Edit Profile</span>
+          </button>
         </div>
 
         {/* Right: Back to Feed & User info */}
@@ -327,7 +429,11 @@ export default function StudioPage() {
         <div className="studio-unified-card">
           {/* Compact User Summary Header Strip */}
           <div className="studio-profile-strip">
-            <div className="studio-user-card">
+            <div
+              className="studio-user-card clickable-profile-header"
+              onClick={() => handleTabChange('profile')}
+              title="Click to Edit Profile & Settings"
+            >
               <img
                 src={user.avatarUrl || 'https://api.dicebear.com/7.x/bottts/svg?seed=user'}
                 alt={user.username}
@@ -641,6 +747,163 @@ export default function StudioPage() {
                 </div>
               )}
             </div>
+          )}
+
+          {/* Tab Content 4: Edit Profile & Account Security */}
+          {activeTab === 'profile' && (
+            <form onSubmit={handleSaveProfile} className="studio-form-content studio-profile-editor">
+              <div className="profile-editor-layout">
+                {/* Left: Avatar Management */}
+                <div className="avatar-editor-col">
+                  <div className="avatar-preview-container">
+                    <img
+                      src={editAvatarUrl || 'https://api.dicebear.com/7.x/bottts/svg?seed=user'}
+                      alt="Avatar Preview"
+                      className="avatar-editor-image"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => avatarInputRef.current?.click()}
+                      className="avatar-upload-action-btn"
+                      title="Upload Avatar Image"
+                    >
+                      <ImageIcon size={14} />
+                      <span>Upload Photo</span>
+                    </button>
+                    <input
+                      ref={avatarInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                      onChange={handleAvatarFileUpload}
+                      style={{ display: 'none' }}
+                    />
+                  </div>
+
+                  <div className="avatar-presets-wrapper">
+                    <label className="section-sublabel">
+                      <Sparkles size={13} color="#ff2d55" />
+                      <span>Instant Avatar Presets</span>
+                    </label>
+                    <div className="avatar-presets-grid">
+                      {AVATAR_PRESETS.map((preset, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setEditAvatarUrl(preset)}
+                          className={`avatar-preset-btn ${editAvatarUrl === preset ? 'selected' : ''}`}
+                        >
+                          <img src={preset} alt={`Preset ${idx + 1}`} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: Personal Info & Password Settings */}
+                <div className="profile-fields-col">
+                  <div className="profile-section-block">
+                    <h4 className="profile-section-title">Personal Information</h4>
+                    
+                    <div className="form-group-row">
+                      <div className="form-group">
+                        <label>Display Name</label>
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          placeholder="Your display name"
+                          className="studio-input"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>
+                          <Phone size={13} style={{ display: 'inline', marginRight: '4px' }} />
+                          Phone Number
+                        </label>
+                        <input
+                          type="tel"
+                          value={editPhone}
+                          onChange={(e) => setEditPhone(e.target.value)}
+                          placeholder="+1 (555) 000-0000"
+                          className="studio-input"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Bio / Creator About</label>
+                      <textarea
+                        rows={2}
+                        value={editBio}
+                        onChange={(e) => setEditBio(e.target.value)}
+                        placeholder="Tell the ShortClip community about yourself..."
+                        className="studio-input studio-textarea"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="profile-section-block">
+                    <h4 className="profile-section-title">
+                      <KeyRound size={15} style={{ display: 'inline', marginRight: '6px' }} />
+                      Security & Password
+                    </h4>
+                    
+                    <div className="form-group-row">
+                      <div className="form-group">
+                        <label>New Password</label>
+                        <input
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Leave blank to keep current"
+                          className="studio-input"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Confirm Password</label>
+                        <input
+                          type="password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          placeholder="Confirm new password"
+                          className="studio-input"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {profileErrorMsg && (
+                    <div className="studio-error-banner">
+                      <AlertCircle size={16} />
+                      <span>{profileErrorMsg}</span>
+                    </div>
+                  )}
+
+                  {profileSuccessMsg && (
+                    <div className="studio-success-banner">
+                      <CheckCircle size={16} />
+                      <span>{profileSuccessMsg}</span>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={isSavingProfile}
+                    className="studio-publish-btn"
+                    style={{ marginTop: '6px' }}
+                  >
+                    {isSavingProfile ? (
+                      <span>Saving changes...</span>
+                    ) : (
+                      <>
+                        <CheckCircle size={18} />
+                        <span>Save Profile & Security Changes</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </form>
           )}
         </div>
       </main>

@@ -14,6 +14,7 @@ interface AuthContextType {
   register: (data: AuthRegisterDto) => Promise<void>;
   login: (data: AuthLoginDto) => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (data: import('@/types').UpdateProfileDto) => Promise<void>;
   pendingAction: (() => void) | null;
 }
 
@@ -90,6 +91,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  const updateProfile = async (data: import('@/types').UpdateProfileDto) => {
+    const updatedUser = await authApi.updateProfile(data);
+    setUser(updatedUser);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -102,6 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         login,
         logout,
+        updateProfile,
         pendingAction,
       }}
     >

@@ -8,8 +8,19 @@ export interface User {
   name?: string;
   avatarUrl?: string;
   bio?: string;
+  phoneNumber?: string;
+  email?: string;
   isFollowing?: boolean;
   followerCount?: number;
+}
+
+export interface UpdateProfileDto {
+  name?: string;
+  avatarUrl?: string;
+  bio?: string;
+  phoneNumber?: string;
+  currentPassword?: string;
+  newPassword?: string;
 }
 
 export interface Video {

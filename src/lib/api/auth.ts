@@ -124,4 +124,43 @@ export const authApi = {
       }
     }
   },
+
+  /**
+   * Update profile picture, phone number, bio, or password
+   */
+  async updateProfile(data: import('@/types').UpdateProfileDto): Promise<User> {
+    try {
+      const res = await apiClient.patch<{ user: User }>('/auth/profile', data);
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('shortclip_auth');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          parsed.user = res.user;
+          localStorage.setItem('shortclip_auth', JSON.stringify(parsed));
+        }
+      }
+      return res.user;
+    } catch (err) {
+      if (!USE_FALLBACK) throw err;
+
+      // Local runtime updater for standalone execution
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('shortclip_auth');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          parsed.user = {
+            ...parsed.user,
+            ...(data.name ? { name: data.name } : {}),
+            ...(data.avatarUrl ? { avatarUrl: data.avatarUrl } : {}),
+            ...(data.bio !== undefined ? { bio: data.bio } : {}),
+            ...(data.phoneNumber !== undefined ? { phoneNumber: data.phoneNumber } : {}),
+          };
+          localStorage.setItem('shortclip_auth', JSON.stringify(parsed));
+          return parsed.user;
+        }
+      }
+
+      throw err;
+    }
+  },
 };
