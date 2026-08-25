@@ -24,7 +24,7 @@ export const BottomActionBar: React.FC<BottomActionBarProps> = ({ video }) => {
   const { toggleLike, openComments, openShare, showToast, openEditModal } = useFeed();
   const { isAuthenticated, user } = useAuth();
 
-  const handleDownload = (e: React.MouseEvent) => {
+  const handleDownload = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const downloadUrl = video.downloadUrl || video.videoUrl;
 
@@ -33,16 +33,36 @@ export const BottomActionBar: React.FC<BottomActionBarProps> = ({ video }) => {
       return;
     }
 
-    // Trigger direct download
-    showToast('Starting video download...');
-    const anchor = document.createElement('a');
-    anchor.href = downloadUrl;
-    anchor.download = `shortclip_${video.id}.mp4`;
-    anchor.target = '_blank';
-    anchor.rel = 'noopener noreferrer';
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
+    showToast('Preparing download...');
+    try {
+      // Fetch as blob to force download for cross-origin URLs
+      const response = await fetch(downloadUrl);
+      if (!response.ok) throw new Error('Network response was not ok');
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      const anchor = document.createElement('a');
+      anchor.href = blobUrl;
+      anchor.download = `shortclip_${video.id}.mp4`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      window.URL.revokeObjectURL(blobUrl);
+
+      showToast('Download started!');
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Fallback to old behavior if CORS blocks the fetch
+      const anchor = document.createElement('a');
+      anchor.href = downloadUrl;
+      anchor.download = `shortclip_${video.id}.mp4`;
+      anchor.target = '_blank';
+      anchor.rel = 'noopener noreferrer';
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      showToast('Opened in new tab to save');
+    }
   };
 
   return (
